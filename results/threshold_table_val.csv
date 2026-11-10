@@ -1,0 +1,237 @@
+model,threshold,TP,FP,FN,TN
+Newton,0.01,1173,8916,0,0
+Newton,0.015,1173,8916,0,0
+Newton,0.02,1173,8916,0,0
+Newton,0.025,1173,8916,0,0
+Newton,0.03,1173,8914,0,2
+Newton,0.035,1173,8914,0,2
+Newton,0.04,1171,8895,2,21
+Newton,0.045,1170,8835,3,81
+Newton,0.05,1168,8684,5,232
+Newton,0.055,1158,8416,15,500
+Newton,0.06,1136,8066,37,850
+Newton,0.065,1111,7611,62,1305
+Newton,0.07,1072,7119,101,1797
+Newton,0.075,1023,6524,150,2392
+Newton,0.08,984,5942,189,2974
+Newton,0.085,939,5357,234,3559
+Newton,0.09,876,4806,297,4110
+Newton,0.095,837,4349,336,4567
+Newton,0.1,792,3857,381,5059
+Newton,0.105,743,3458,430,5458
+Newton,0.11,696,3085,477,5831
+Newton,0.115,654,2733,519,6183
+Newton,0.12,610,2445,563,6471
+Newton,0.125,572,2195,601,6721
+Newton,0.13,544,1987,629,6929
+Newton,0.135,505,1795,668,7121
+Newton,0.14,479,1617,694,7299
+Newton,0.145,449,1460,724,7456
+Newton,0.15,420,1338,753,7578
+Newton,0.155,395,1226,778,7690
+Newton,0.16,375,1121,798,7795
+Newton,0.165,361,1025,812,7891
+Newton,0.17,341,934,832,7982
+Newton,0.175,323,873,850,8043
+Newton,0.18,312,810,861,8106
+Newton,0.185,294,745,879,8171
+Newton,0.19,280,689,893,8227
+Newton,0.195,263,637,910,8279
+Newton,0.2,246,595,927,8321
+Newton,0.205,232,545,941,8371
+Newton,0.21,212,504,961,8412
+Newton,0.215,192,463,981,8453
+Newton,0.22,186,435,987,8481
+Newton,0.225,176,407,997,8509
+Newton,0.23,166,384,1007,8532
+Newton,0.235,158,352,1015,8564
+Newton,0.24,153,330,1020,8586
+Newton,0.245,152,309,1021,8607
+Newton,0.25,144,286,1029,8630
+Newton,0.255,135,259,1038,8657
+Newton,0.26,132,237,1041,8679
+Newton,0.265,126,226,1047,8690
+Newton,0.27,123,214,1050,8702
+Newton,0.275,117,198,1056,8718
+Newton,0.28,111,181,1062,8735
+Newton,0.285,108,171,1065,8745
+Newton,0.29,100,160,1073,8756
+Newton,0.295,95,153,1078,8763
+Newton,0.3,90,146,1083,8770
+Newton,0.305,88,140,1085,8776
+Newton,0.31,82,134,1091,8782
+Newton,0.315,80,126,1093,8790
+Newton,0.32,77,114,1096,8802
+Newton,0.325,71,107,1102,8809
+Newton,0.33,70,102,1103,8814
+Newton,0.335,67,100,1106,8816
+Newton,0.34,66,96,1107,8820
+Newton,0.345,66,92,1107,8824
+Newton,0.35,63,89,1110,8827
+Newton,0.355,63,86,1110,8830
+Newton,0.36,61,77,1112,8839
+Newton,0.365,60,75,1113,8841
+Newton,0.37,57,69,1116,8847
+Newton,0.375,56,65,1117,8851
+Newton,0.38,55,61,1118,8855
+Newton,0.385,53,54,1120,8862
+Newton,0.39,52,53,1121,8863
+Newton,0.395,51,51,1122,8865
+Newton,0.4,50,50,1123,8866
+Newton,0.405,49,48,1124,8868
+Newton,0.41,47,46,1126,8870
+Newton,0.415,46,44,1127,8872
+Newton,0.42,45,43,1128,8873
+Newton,0.425,43,40,1130,8876
+Newton,0.43,43,37,1130,8879
+Newton,0.435,43,36,1130,8880
+Newton,0.44,40,35,1133,8881
+Newton,0.445,40,33,1133,8883
+Newton,0.45,40,31,1133,8885
+Newton,0.455,39,31,1134,8885
+Newton,0.46,38,30,1135,8886
+Newton,0.465,37,29,1136,8887
+Newton,0.47,35,28,1138,8888
+Newton,0.475,33,27,1140,8889
+Newton,0.48,33,27,1140,8889
+Newton,0.485,31,24,1142,8892
+Newton,0.49,31,22,1142,8894
+Newton,0.495,30,22,1143,8894
+Newton,0.5,30,21,1143,8895
+Newton,0.505,28,20,1145,8896
+Newton,0.51,28,20,1145,8896
+Newton,0.515,28,20,1145,8896
+Newton,0.52,27,20,1146,8896
+Newton,0.525,26,20,1147,8896
+Newton,0.53,26,20,1147,8896
+Newton,0.535,25,18,1148,8898
+Newton,0.54,25,17,1148,8899
+Newton,0.545,21,17,1152,8899
+Newton,0.55,21,16,1152,8900
+Newton,0.555,19,16,1154,8900
+Newton,0.56,18,16,1155,8900
+Newton,0.565,17,16,1156,8900
+Newton,0.57,16,16,1157,8900
+Newton,0.575,16,15,1157,8901
+Newton,0.58,16,15,1157,8901
+Newton,0.585,16,14,1157,8902
+Newton,0.59,16,13,1157,8903
+Newton,0.595,15,13,1158,8903
+Gradient boosting,0.01,1173,8916,0,0
+Gradient boosting,0.015,1173,8916,0,0
+Gradient boosting,0.02,1173,8916,0,0
+Gradient boosting,0.025,1173,8915,0,1
+Gradient boosting,0.03,1172,8900,1,16
+Gradient boosting,0.035,1171,8865,2,51
+Gradient boosting,0.04,1167,8804,6,112
+Gradient boosting,0.045,1166,8692,7,224
+Gradient boosting,0.05,1151,8473,22,443
+Gradient boosting,0.055,1141,8178,32,738
+Gradient boosting,0.06,1119,7791,54,1125
+Gradient boosting,0.065,1084,7351,89,1565
+Gradient boosting,0.07,1057,6833,116,2083
+Gradient boosting,0.075,1012,6276,161,2640
+Gradient boosting,0.08,971,5711,202,3205
+Gradient boosting,0.085,912,5133,261,3783
+Gradient boosting,0.09,876,4693,297,4223
+Gradient boosting,0.095,835,4270,338,4646
+Gradient boosting,0.1,798,3894,375,5022
+Gradient boosting,0.105,756,3566,417,5350
+Gradient boosting,0.11,723,3265,450,5651
+Gradient boosting,0.115,694,2952,479,5964
+Gradient boosting,0.12,645,2671,528,6245
+Gradient boosting,0.125,607,2404,566,6512
+Gradient boosting,0.13,579,2179,594,6737
+Gradient boosting,0.135,554,1993,619,6923
+Gradient boosting,0.14,541,1825,632,7091
+Gradient boosting,0.145,521,1688,652,7228
+Gradient boosting,0.15,500,1579,673,7337
+Gradient boosting,0.155,475,1482,698,7434
+Gradient boosting,0.16,456,1370,717,7546
+Gradient boosting,0.165,426,1266,747,7650
+Gradient boosting,0.17,399,1157,774,7759
+Gradient boosting,0.175,375,1063,798,7853
+Gradient boosting,0.18,353,961,820,7955
+Gradient boosting,0.185,337,884,836,8032
+Gradient boosting,0.19,318,805,855,8111
+Gradient boosting,0.195,301,731,872,8185
+Gradient boosting,0.2,284,661,889,8255
+Gradient boosting,0.205,266,588,907,8328
+Gradient boosting,0.21,252,544,921,8372
+Gradient boosting,0.215,236,491,937,8425
+Gradient boosting,0.22,221,439,952,8477
+Gradient boosting,0.225,203,401,970,8515
+Gradient boosting,0.23,193,368,980,8548
+Gradient boosting,0.235,181,333,992,8583
+Gradient boosting,0.24,177,308,996,8608
+Gradient boosting,0.245,167,285,1006,8631
+Gradient boosting,0.25,157,261,1016,8655
+Gradient boosting,0.255,150,243,1023,8673
+Gradient boosting,0.26,140,218,1033,8698
+Gradient boosting,0.265,137,211,1036,8705
+Gradient boosting,0.27,130,203,1043,8713
+Gradient boosting,0.275,124,188,1049,8728
+Gradient boosting,0.28,118,174,1055,8742
+Gradient boosting,0.285,113,166,1060,8750
+Gradient boosting,0.29,107,152,1066,8764
+Gradient boosting,0.295,102,140,1071,8776
+Gradient boosting,0.3,99,129,1074,8787
+Gradient boosting,0.305,94,117,1079,8799
+Gradient boosting,0.31,94,110,1079,8806
+Gradient boosting,0.315,88,100,1085,8816
+Gradient boosting,0.32,81,93,1092,8823
+Gradient boosting,0.325,79,91,1094,8825
+Gradient boosting,0.33,78,87,1095,8829
+Gradient boosting,0.335,77,83,1096,8833
+Gradient boosting,0.34,72,72,1101,8844
+Gradient boosting,0.345,70,71,1103,8845
+Gradient boosting,0.35,66,68,1107,8848
+Gradient boosting,0.355,65,64,1108,8852
+Gradient boosting,0.36,64,58,1109,8858
+Gradient boosting,0.365,62,52,1111,8864
+Gradient boosting,0.37,58,48,1115,8868
+Gradient boosting,0.375,58,44,1115,8872
+Gradient boosting,0.38,53,40,1120,8876
+Gradient boosting,0.385,53,36,1120,8880
+Gradient boosting,0.39,49,33,1124,8883
+Gradient boosting,0.395,45,30,1128,8886
+Gradient boosting,0.4,44,27,1129,8889
+Gradient boosting,0.405,43,26,1130,8890
+Gradient boosting,0.41,37,26,1136,8890
+Gradient boosting,0.415,36,26,1137,8890
+Gradient boosting,0.42,33,24,1140,8892
+Gradient boosting,0.425,31,21,1142,8895
+Gradient boosting,0.43,28,19,1145,8897
+Gradient boosting,0.435,26,18,1147,8898
+Gradient boosting,0.44,26,18,1147,8898
+Gradient boosting,0.445,24,17,1149,8899
+Gradient boosting,0.45,22,14,1151,8902
+Gradient boosting,0.455,21,13,1152,8903
+Gradient boosting,0.46,19,13,1154,8903
+Gradient boosting,0.465,19,12,1154,8904
+Gradient boosting,0.47,18,12,1155,8904
+Gradient boosting,0.475,17,10,1156,8906
+Gradient boosting,0.48,17,10,1156,8906
+Gradient boosting,0.485,17,9,1156,8907
+Gradient boosting,0.49,16,9,1157,8907
+Gradient boosting,0.495,15,9,1158,8907
+Gradient boosting,0.5,11,7,1162,8909
+Gradient boosting,0.505,10,7,1163,8909
+Gradient boosting,0.51,8,7,1165,8909
+Gradient boosting,0.515,5,5,1168,8911
+Gradient boosting,0.52,5,3,1168,8913
+Gradient boosting,0.525,5,3,1168,8913
+Gradient boosting,0.53,5,2,1168,8914
+Gradient boosting,0.535,5,2,1168,8914
+Gradient boosting,0.54,5,1,1168,8915
+Gradient boosting,0.545,5,1,1168,8915
+Gradient boosting,0.55,5,1,1168,8915
+Gradient boosting,0.555,5,1,1168,8915
+Gradient boosting,0.56,4,1,1169,8915
+Gradient boosting,0.565,4,1,1169,8915
+Gradient boosting,0.57,3,1,1170,8915
+Gradient boosting,0.575,2,0,1171,8916
+Gradient boosting,0.58,2,0,1171,8916
+Gradient boosting,0.585,2,0,1171,8916
+Gradient boosting,0.59,1,0,1172,8916
+Gradient boosting,0.595,1,0,1172,8916

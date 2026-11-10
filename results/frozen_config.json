@@ -1,0 +1,20 @@
+{
+  "models": {
+    "Newton": "no penalty, fit on train only",
+    "Gradient boosting": {
+      "max_iter": 200,
+      "learning_rate": 0.05,
+      "max_leaf_nodes": 15,
+      "early_stopping": false,
+      "random_state": 0
+    }
+  },
+  "threshold_rule": "t = 1/(1+r)",
+  "ratios": [
+    2,
+    3,
+    5,
+    10
+  ],
+  "written_before_test_data_loaded": "2026-11-07 15:31:57"
+}

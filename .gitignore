@@ -1,0 +1,6 @@
+Data/
+.venv/
+.vscode/
+__pycache__/
+*.arff
+project_req.pdf
