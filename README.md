@@ -2,13 +2,33 @@
 
 Newton's method, calibration, cost-sensitive thresholds and fairness analysis on the Diabetes 130-US Hospitals dataset (OpenML ID 4541, 1999 to 2008). ES 335 project, due Nov 17, 2026.
 
+**Author:** Abhimanyu Arya (roll number 25110007), working alone.
+**Live website:** https://abhimanyu-arya.github.io/30-Day-Hospital-Readmission-Prediction/ (source in `docs/`).
+**Code and results:** this repository (`results/` holds the aggregate outputs; no data files).
+
+Two items are still open and marked **[TODO]**: the result of the train-only rules check (section 15) and the pinned package versions (section 18).
+
+## Rubric map
+
+| Course criterion | Where the evidence is |
+|---|---|
+| Problem formulation and scope | Section 0; website "Question" |
+| Data understanding | Sections 1, 2, 5; website "Data" |
+| Preprocessing and statistical reasoning | Sections 3, 4, 5, 14, 15 |
+| Baseline and method selection | Sections 6, 7, 8, 9, 10 |
+| Evaluation design and metrics | Sections 8, 9, 11 (split fixed first; validation for every choice; test scored once for frozen models) |
+| Results, errors and limitations | Sections 11, 12, 13, 16 |
+| Reproducibility and technical integrity | Sections 4, 6 (verification table), 18; no data or credentials in the repository |
+| Website and useful interaction (ES 335) | Live website: cost-ratio slider, threshold slider and calibration plot, all driven by `results.json` |
+| AI-tool disclosure | Section 19 |
+
 ---
 
 ## 0. Question and scope
 
 - **Question.** Can a logistic regression written from scratch, using information available when a diabetic patient is discharged, flag encounters that end in a readmission within 30 days, and is flagging worth it once the cost of a missed readmission is weighed against the cost of an unnecessary follow-up?
 - **One row** is one hospital encounter. **Target:** `readmit_30d` (1 if readmitted within 30 days, 0 otherwise). Positive rate about 11.4%.
-- **Prediction time:** at discharge. The features are admission and discharge information (admission type and source, discharge disposition), length of stay, counts of procedures, lab tests and medications, diagnosis categories, medication changes, glucose and A1C results, and the patient's number of outpatient, emergency and inpatient visits in the year before the encounter (per the dataset documentation). **[TODO: confirm the "year before" wording against the UCI/OpenML description.]**
+- **Prediction time:** at discharge. The features are admission and discharge information (admission type and source, discharge disposition), length of stay, counts of procedures, lab tests and medications, diagnosis categories, medication changes, glucose and A1C results, and the patient's number of outpatient, emergency and inpatient visits in the year before the encounter (per the dataset documentation).
 - **Intended use (assumed):** flag patients for a follow-up intervention. The cost ratio `r` (cost of a missed readmission divided by the cost of an unnecessary intervention) is **assumed, not estimated**, because there is no cost data. Results are reported over a range of `r`.
 - **Limits of the claim.** The results describe association and prediction on 1999 to 2008 US hospital data, not causes, and not performance on current patients (section 16).
 
@@ -16,11 +36,14 @@ Newton's method, calibration, cost-sensitive thresholds and fairness analysis on
 
 ## 1. Data source
 
-- OpenML ID 4541, Diabetes 130-US hospitals, 1999 to 2008. Downloaded from OpenML in ARFF format.
+- OpenML ID 4541, Diabetes 130-US hospitals, 1999 to 2008. Downloaded from OpenML in ARFF format. The same dataset is hosted by the UCI Machine Learning Repository (id 296); its `IDS_mapping.csv` gives the meaning of the admission and discharge codes used for the groupings in section 3.
 - Original study: Strack et al. (2014), which asked whether HbA1c measurement affects readmission.
-- License: **[TODO: verify license on the OpenML / UCI page and state it here]**.
+- License: the UCI page states **CC BY 4.0** (https://archive.ics.uci.edu/dataset/296), which allows sharing and adaptation with credit; the OpenML metadata lists the licence as "Public". Credit, as CC BY requires: Clore, J., Cios, K., DeShazo, J., & Strack, B. (2014). Diabetes 130-US Hospitals for Years 1999-2008 [Dataset]. UCI Machine Learning Repository. https://doi.org/10.24432/C5230J
 - After cleaning: 99,320 encounters from 69,979 unique patients. Because patients have multiple encounters (1.42 per patient in the training split; 23.2% of training patients have two or more), a patient-level split is required (see section 4).
-- Only the model-ready CSVs are used downstream. `Data/` is in `.gitignore`, and no patient-level rows go in the repository.
+- Only the model-ready CSVs are used downstream. `Data/` is in `.gitignore`, and the current files of the repository contain no patient-level rows (only aggregate results in `results/` and `docs/results.json`).
+<!-- history-note -->
+- Repository history note: early commits, made before the current version, contained `Final_Data.csv` (the cleaned encounter-level dataset, including the dataset's own patient and encounter identifiers), `X_test.csv`, `fair_train.csv`, `fair_val.csv`, `IDS_mapping.csv`, `schema_reference.csv` and the course PDF. They were deleted from the current files but remain visible in the commit history. The data are the public, de-identified UCI/OpenML dataset, which the licence allows to be shared with credit; no result depends on them being in the history.
+<!-- /history-note -->
 
 ## 2. Cleaning (`Data_Loading_Processing.py`)
 
@@ -59,8 +82,8 @@ Disclosure: the 98.46% threshold was chosen while looking at readmission rates p
 - **ICD-9 (diag_1, diag_2, diag_3)**: grouped into Diabetes (250.xx), Circulatory (390 to 459, 785), Respiratory (460 to 519, 786), Digestive (520 to 579, 787), Genitourinary (580 to 629, 788), Musculoskeletal (710 to 739), Neoplasms (140 to 239), Injury (800 to 999 and E-codes), Other (including V-codes, which are supplementary factors; E-codes are external causes of injury), and Missing. Codes 785 to 788 are symptom codes, mapped to the organ system they point to. The grouping follows Strack et al. Mental health and blood disorders are large enough for their own categories but are left in Other to limit the category count. Splitting them out was not tested (section 17).
 - **medical_specialty**: top 12 values (covering 93.47% of rows, out of 73 distinct) kept, the rest grouped as `Other`. This gives 10 named specialties plus `Missing` and `Other`.
 - **payer_code**: codes under 1% of rows are merged into `OtherPayer`. `Missing` is kept as its own column. (A code with a single row in the whole dataset, FR, is what exposed the need for this merge.)
-- **admission_source_id**: Referral (1, 2, 3), ER (7), Transfer (4, 5, 6, 10, 18, 22, 26), Unknown (everything else, such as NULL, not available and not mapped codes like 9, 17 and 20). **[TODO: add group counts from your printout]**
-- **admission_type_id**: Emergency (1), Urgent (2), Elective (3), Unknown (everything else). **[TODO: add group counts]**
+- **admission_source_id**: Referral (1, 2, 3), ER (7), Transfer (4, 5, 6, 10, 18, 22, 26), Unknown (everything else, such as NULL, not available and not mapped codes like 9, 17 and 20). Counts over all 99,320 rows: ER 55,840 (reference), Referral 30,423, Unknown 6,875, Transfer 6,182.
+- **admission_type_id**: Emergency (1), Urgent (2), Elective (3), Unknown (everything else). Counts over all rows: Emergency 52,358 (reference), Elective 18,660, Urgent 18,131, Unknown 10,171.
 - **discharge_disposition_id**: Home (1), SNF/LTC (3, 4, 23, 24), HomeHealth (6, 8), Unknown (18, 25, 26), Rehab (22), AMA (7), OtherInstitution (all remaining codes). AMA is kept separate despite its size because it describes patient behaviour rather than a facility.
 
 Group counts for discharge: Home 60,226; SNF/LTC 15,225; HomeHealth 13,006; Unknown 4,678; OtherInstitution 3,571; Rehab 1,992; AMA 622.
@@ -101,9 +124,9 @@ A row with all `race_*` columns at 0 is AfricanAmerican, which matters for the f
 
 ## 5. Data checks
 
-- Train design matrix with the intercept column: 100 columns. Rank checks, constant-column checks and the condition number are produced by `DataSplit.py` (the script asserts that no train column is constant).
+- Train design matrix: 99 feature columns, rank 99; with the intercept column, 100 columns, rank 100. `DataSplit.py` asserts that no train column is constant (so every category appears in the training split), and a separate check found no duplicate columns.
 - **Condition number of the design matrix with intercept: 154.19**, the ratio of the largest to the smallest singular value. The **condition number of the Hessian at the Newton solution is 24,808**, about the square of that. This is a modest conditioning: the unpenalized problem is well posed and Newton converges in 6 updates. It does not by itself decide whether Ridge helps prediction. That was decided by the validation sweep (section 7), where it did not.
-- **[TODO: rerun and record on the 99-feature version: confirmed rank, no duplicate columns, no pair with absolute correlation above 0.9, no feature that separates the outcome perfectly, and the smallest binary column in train (the earlier figure of 60 ones was from the previous feature set).]**
+- Correlation: the largest absolute pairwise correlation among features is 0.782 (`A1Cresult` with `a1c_tested`), and no pair exceeds 0.9. Of the 86 binary columns, the smallest are `rosiglitazone_Down` (60 ones in train, 4 readmissions), `pioglitazone_Down` (86, 11) and `rosiglitazone_Up` (115, 14). No binary column has all its ones in one outcome class, and Newton's method converged to finite coefficients (the largest in magnitude is the intercept, -2.565), so the data are not perfectly separable.
 
 ## 6. Model: logistic regression from scratch (`ModelClass.py`, `model.py`)
 
@@ -146,12 +169,12 @@ All fit functions return the weights and three histories (train loss, validation
 | Method | Updates | Train loss | Val loss | Final gradient norm | Max abs coefficient gap to Newton |
 |---|---|---|---|---|---|
 | Newton | 6 | 0.336450 | 0.339326 | 5.4e-17 | 0 |
-| Gradient descent, lr 0.1 | 5,000 | 0.3374 | 0.3401 | 1.8e-3 | 0.725 |
+| Gradient descent, lr 0.1 | 5,000 | 0.3373 | 0.3401 | 1.8e-3 | 0.725 † |
 | Gradient descent, lr 0.1 | 50,000 | 0.3365 | 0.3393 | 7.1e-5 | 0.353 |
 
-**[TODO: these gradient descent rows come from earlier runs. Rerun with `RUN_GD = True` in the final script, confirm they reproduce, and confirm `W_gd.npy` and `loss_history_gd.csv` exist.]**
+The gradient descent rows were checked against the saved run (`loss_history_gd.csv`, `W_gd.npy`): after 5,000 updates train loss 0.3373, validation loss 0.3401, gradient norm 1.77e-3; after 50,000 updates 0.3365, 0.3393 and 7.08e-5, with a maximum coefficient gap to Newton of 0.353. † The 0.725 gap at 5,000 updates is from an earlier run; only the final weights are saved.
 
-Newton's gradient norm falls 0.69, 1.2e-1, 2.0e-2, 1.4e-3, 1.0e-5, 8.0e-10, 5.4e-17, roughly squaring the error near the end (quadratic convergence). Gradient descent has not converged after 50,000 iterations. Its remaining coefficient gap sits on the rare drug dummies (for example `rosiglitazone_Down`, `pioglitazone_Up`, `glipizide_Down`), where each gradient entry is tiny because the column is nonzero in few rows, and one learning rate moves them slowly. The losses already agree to 4 digits, so the gap costs almost nothing in predictions. Collinear directions (the intercept, `num_med_prescribed`) also lagged at 5,000 iterations but had caught up by 50,000; this is the likely explanation but was not tested separately. The Hessian condition number of 24,808 is consistent with gradient descent being slow on this problem.
+Newton's gradient norm falls 0.69, 1.2e-1, 2.0e-2, 1.4e-3, 1.0e-5, 8.0e-10, 5.4e-17, roughly squaring the error near the end (quadratic convergence). Gradient descent has not converged after 50,000 iterations. Its remaining coefficient gap sits on the rare drug dummies (the three largest final gaps are `rosiglitazone_Down` 0.353, `pioglitazone_Up` 0.149 and `rosiglitazone_Up` 0.145), where each gradient entry is tiny because the column is nonzero in few rows, and one learning rate moves them slowly. The losses already agree to 4 digits, so the gap costs almost nothing in predictions. Collinear directions (the intercept, `num_med_prescribed`) also lagged at 5,000 iterations but had caught up by 50,000; this is the likely explanation but was not tested separately. The Hessian condition number of 24,808 is consistent with gradient descent being slow on this problem.
 
 For scale, a constant prediction of the training base rate (11.35%) has a validation log loss of 0.3595 (test 0.3548), so the model's log loss (0.3393 on validation) is only modestly better. Readmission within 30 days is hard to predict from these features, so calibration, AUC and the threshold analysis carry more of the story than log loss alone.
 
@@ -213,7 +236,7 @@ Interpretation: the model is better than the base-rate predictor, but modestly. 
 
 ### Calibration
 
-Calibration curves use 10 equal-count bins (`figures/calibration_val.png`, with 95% intervals on the observed rates). Newton's decile table tracks the diagonal: the top decile has a mean predicted risk of 0.274 against 0.286 observed. Gradient boosting is close to the diagonal with a few wobbles of about two standard errors. Random forest under-predicts at the top (about 0.21 predicted against about 0.285 observed, read from the figure). Calibration slopes on the test set are in section 11. **[TODO: print the validation calibration slopes with the updated `plots_val.py` and add them here.]**
+Calibration curves use 10 equal-count bins (`figures/calibration_val.png`, with 95% intervals on the observed rates). Newton's decile table tracks the diagonal: the top decile has a mean predicted risk of 0.274 against 0.286 observed. Gradient boosting is close to the diagonal with a few wobbles of about two standard errors. Random forest under-predicts at the top (about 0.21 predicted against about 0.285 observed, read from the figure). Calibration slopes on validation (1 is perfect; above 1 means probabilities are too compressed toward the mean): Newton 1.036, gradient boosting 1.137 and random forest 1.595, which matches the random forest's under-prediction in the top bin. Test-set slopes are in section 11.
 
 ### Cost-sensitive thresholds (validation)
 
@@ -399,7 +422,7 @@ The experiment compares the actual patient-level validation result with a naive 
 
 The 13 standardized columns were rebuilt from the raw `Final_Data.csv` using the mean and standard deviation of the training patients only. The rebuilt values match `X_train`, `X_val` and `X_test` to a maximum error of 3.6e-15, and the dummy columns are unchanged. Validation and test columns have means slightly off zero (largest absolute column mean 0.029 and 0.025), as expected when training statistics are applied. Standardizing with all rows instead would shift single extreme cells by up to 5, 1.8 and 9 standard deviations (train, val, test) because the visit counts are heavy-tailed, so the check would detect a leak.
 
-**Not yet verified:** the top-12 specialty list, the 1% rare-payer threshold and the 98.46% drug-variance threshold were computed on all rows before the split (without using labels, apart from the disclosure in section 3). A recomputation on the training patients only has not been done. **[TODO]**
+**Not yet verified:** the top-12 specialty list, the 1% rare-payer threshold and the 98.46% drug-variance threshold were computed on all rows before the split (without using labels, apart from the disclosure in section 3). A script that recomputes all three rules on the training patients only and compares them with the all-rows versions (`train_only_rules_check.py`) has been written. **[TODO: record its result here: whether the dropped drug columns, the top-12 specialties and the merged payer codes are the same.]**
 
 ## 16. Limitations
 
@@ -419,21 +442,22 @@ The 13 standardized columns were rebuilt from the raw `Final_Data.csv` using the
 
 ## 17. Remaining work
 
-1. Build the website (static, GitHub Pages): sections for question, data, preprocessing, baseline and methods, evaluation, results, errors, limitations, conclusion and reproduction steps, plus a cost-ratio slider showing flagged, caught, missed and unnecessary flags per 1,000 patients, and the saving, from a precomputed `results.json` (aggregates only, no patient-level rows).
-2. Plots: data understanding (class balance and a few key features), fairness by group with intervals, and the cost saving against `r`.
-3. Train-only recomputation of the specialty top-12, rare-payer and drug-variance rules (section 15).
-4. Optional ablations not yet run: ICD-9 mental health and blood disorder categories, and admission group variants.
-5. Fill the **[TODO]** items in this file and finish the final README pass.
-6. Viva preparation: each student should be able to explain their contribution, key choices, the evaluation design, a limitation, and the effect of a small change (for example a different `r`, or `log1p` on visit counts).
+1. Record the result of `train_only_rules_check.py` in section 15 (and update limitation 9 and section 3 to match).
+2. Optional plots for data understanding (class balance, readmission rate by prior inpatient visits and by age) in `results/figures/` and on the website.
+3. Optional ablations not run: ICD-9 mental health and blood disorder categories, and admission group variants.
+4. Pin package versions from the virtual environment (section 18).
+5. Viva preparation: each student should be able to explain their contribution, key choices, the evaluation design, a limitation, and the effect of a small change (for example a different `r`, or `log1p` on visit counts).
+
+Done: the static website is published on GitHub Pages (https://abhimanyu-arya.github.io/30-Day-Hospital-Readmission-Prediction/), with a cost-ratio slider, a free threshold slider and a calibration plot reading `docs/results.json`, which aggregates only (no patient-level rows).
 
 ## 18. Files and reproducibility
 
-Run in this order: `Data_Loading_Processing.py`, `Cleaned_Data_Encoding.py`, `DataSplit.py` (produces `Final_Data.csv`-based splits; **[TODO: confirm which script writes `Final_Data.csv`]**), `ModelClass.py` (set `RUN_GD = True` once for the gradient descent run), then the analysis scripts, which read the saved outputs and `model.py`:
+Run in this order: `Data_Loading_Processing.py`, `Cleaned_Data_Encoding.py`, `DataSplit.py` (`Data_Loading_Processing.py` writes `cleaned_data.csv`, `Cleaned_Data_Encoding.py` writes `Final_Data.csv`, and `DataSplit.py` reads it), `ModelClass.py` (set `RUN_GD = True` once for the gradient descent run), then the analysis scripts, which read the saved outputs and `model.py`:
 
 | Script | Purpose | Uses test data? |
 |---|---|---|
 | `model.py` | Verified function definitions, no side effects | no |
-| metrics script | AUC, Brier, confusion metrics, bootstrap, tree baselines, `val_probs.csv` | no |
+| `metrics_val.py` | AUC, Brier, confusion metrics, bootstrap, tree baselines, `val_probs.csv` | no |
 | `plots_val.py` | ROC, calibration (with intervals and slopes), convergence figures | no |
 | `cost_val.py` | Threshold table, cost summary, saving bootstrap | no |
 | `ablations_val.py` | Six feature-set ablations | no |
@@ -441,18 +465,21 @@ Run in this order: `Data_Loading_Processing.py`, `Cleaned_Data_Encoding.py`, `Da
 | `standard_errors.py`, `standard_errors_cluster.py` | Naive and cluster-robust coefficient uncertainty | no |
 | `leakage_demo.py` | Encounter-level leakage demonstration | no |
 | `preproc_check.py` | Train-only standardization check | reads raw split labels only |
-| test-set script **[TODO: filename]** | Single test evaluation, writes `frozen_config.json` and `test_probs.csv`; refuses to run twice | yes, once |
+| `test_set.py` | Single test evaluation, writes `frozen_config.json` and `test_probs.csv`; refuses to run twice | yes, once |
 | `fairness_test.py` | Fairness audit from `test_probs.csv` and `fair_test.csv` | yes (frozen predictions) |
+| `train_only_rules_check.py` | Recomputes the drug, specialty and payer rules on training patients only | no (reads patient split labels only) |
+| `export_results.py` | Builds `results.json` for the website (aggregates only) | uses saved test predictions |
 
-All paths use `BASE = Path(r'E:\ML') / 'Data'`. Seeds: split 42; models `random_state=0`; bootstrap seeds are set in each script. Dependencies are in `requirements.txt`. **[TODO: add scikit-learn, scipy, matplotlib and statsmodels (the last only for the cross-checks); confirm pandas and numpy versions.]**
+All paths use `BASE = Path(r'E:\ML') / 'Data'`. Seeds: split 42; models `random_state=0`; bootstrap seeds are set in each script. Dependencies are in `requirements.txt` (numpy, pandas, scipy, scikit-learn, matplotlib, statsmodels, the last only for the cross-checks). **[TODO: pin the exact versions from the project's virtual environment `.venv`.]**
 
-Saved outputs (aggregates and model weights, no patient-level rows should be committed): `W_nt.npy`, `W_gd.npy`, `W_ridge_1e-4.npy`, `W_ridge_best.npy`, `loss_history_newton.csv`, `loss_history_gd.csv`, `coefficients.csv`, `ridge_sweep.csv`, `metrics_val.csv`, `metrics_val_all.csv`, `confusion_val_newton.csv`, `threshold_table_val.csv`, `cost_summary_val.csv`, `ablations_val.csv`, `coef_se.csv`, `coef_se_cluster.csv`, `error_groups_val.csv`, `leakage_demo.csv`, `leakage_demo_raw.csv`, `frozen_config.json`, `test_metrics.csv`, `test_cost.csv`, `fairness_test.csv`, `figures/`. **[TODO: confirm each file exists.]** `val_probs.csv` and `test_probs.csv` contain one predicted probability per patient encounter and should stay out of the repository like the other row-level files.
+Saved outputs (aggregates and model weights, no patient-level rows should be committed): `W_nt.npy`, `W_gd.npy`, `W_ridge_1e-4.npy`, `W_ridge_best.npy`, `loss_history_newton.csv`, `loss_history_gd.csv`, `coefficients.csv`, `ridge_sweep.csv`, `metrics_val.csv`, `metrics_val_all.csv`, `confusion_val_newton.csv`, `threshold_table_val.csv`, `cost_summary_val.csv`, `ablations_val.csv`, `coef_se.csv`, `coef_se_cluster.csv`, `error_groups_val.csv`, `leakage_demo.csv`, `leakage_demo_raw.csv`, `frozen_config.json`, `test_metrics.csv`, `test_cost.csv`, `fairness_test.csv`, `figures/`. In the repository these are in `results/`; the website data is `docs/results.json`. `val_probs.csv` and `test_probs.csv` contain one predicted probability per patient encounter and should stay out of the repository like the other row-level files.
 
 ## 19. AI use disclosure
 
-Claude (Anthropic) was used for code review, debugging, explanation and planning, and to draft the analysis scripts after the model itself was working: the evaluation metrics, baselines, bootstrap, calibration, cost-threshold, ablation, fairness, error-analysis, standard-error, leakage and preprocessing-check scripts, and drafts of this README. The core code (preprocessing, sigmoid, loss, gradient, Hessian, Newton's method, Ridge) was written by the student, with review. Every drafted script was run by the student on the real data and its outputs were checked: the from-scratch metrics against scikit-learn, the standard errors against statsmodels, and the models against scikit-learn solvers (section 6). The student is responsible for every result and can explain any part of the work. Antigravity's AI features were used as applicable. **[TODO: state exactly how, and edit this paragraph so it is true to what you actually did.]**
+Claude (Anthropic) was used for code review, debugging, explanation and planning, and to draft the analysis scripts after the model itself was working: the evaluation metrics, baselines, bootstrap, calibration, cost-threshold, ablation, fairness, error-analysis, standard-error, leakage and preprocessing-check scripts, and drafts of this README. The core code (preprocessing, sigmoid, loss, gradient, Hessian, Newton's method, Ridge) was written by the student, with review. Every drafted script was run by the student on the real data and its outputs were checked: the from-scratch metrics against scikit-learn, the standard errors against statsmodels, and the models against scikit-learn solvers (section 6). The student is responsible for every result and can explain any part of the work. The project website (`docs/index.html`) was also drafted with Claude. Antigravity (an AI-assisted coding environment) was used to resolve technical errors in the Python virtual environment, such as packages that did not load correctly.
 
 ## 20. References
 
-- Strack, B., DeShazo, J. P., Gennings, C., et al. (2014). Impact of HbA1c Measurement on Hospital Readmission Rates: Analysis of 70,000 Clinical Database Patient Records. *BioMed Research International*, 2014, Article ID 781670. **[TODO: confirm volume and article ID against the paper.]**
+- Strack, B., DeShazo, J. P., Gennings, C., et al. (2014). Impact of HbA1c Measurement on Hospital Readmission Rates: Analysis of 70,000 Clinical Database Patient Records. *BioMed Research International*, 2014, Article ID 781670.
 - OpenML dataset 4541, Diabetes 130-US hospitals for years 1999 to 2008.
+- Clore, J., Cios, K., DeShazo, J., & Strack, B. (2014). Diabetes 130-US Hospitals for Years 1999-2008 [Dataset]. UCI Machine Learning Repository. https://doi.org/10.24432/C5230J (CC BY 4.0).

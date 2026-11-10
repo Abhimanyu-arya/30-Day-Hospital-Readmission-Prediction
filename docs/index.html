@@ -1,174 +1,434 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Predicting 30-day diabetic readmission with logistic regression from scratch</title>
-<style>
-:root{--bg:#fff;--fg:#1c2330;--mut:#5b6575;--line:#dde2ea;--acc:#2a5db0;--card:#f4f6fa;--ok:#2e8b57;--bad:#c0504d;--warn:#d9a441}
-@media (prefers-color-scheme:dark){:root{--bg:#14181f;--fg:#e6e9ef;--mut:#9aa4b5;--line:#2c3442;--acc:#7fa8ee;--card:#1c222c;--ok:#5ec28a;--bad:#e07a77;--warn:#e3b865}}
-*{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.6 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
-header,main{max-width:860px;margin:0 auto;padding:0 18px}
-header{padding-top:36px}
-h1{font-size:1.8rem;line-height:1.25;margin:0 0 8px}
-h2{margin-top:2.4rem;padding-top:.4rem;border-top:1px solid var(--line);font-size:1.3rem}
-nav{display:flex;flex-wrap:wrap;gap:6px 14px;margin:14px 0;font-size:.9rem}
-nav a{color:var(--acc);text-decoration:none}
-p.sub,.note{color:var(--mut)}
-.note{font-size:.88rem}
-table{border-collapse:collapse;width:100%;font-size:.88rem;margin:10px 0}
-th,td{border-bottom:1px solid var(--line);padding:5px 8px;text-align:right}
-th:first-child,td:first-child{text-align:left}
-.wrap{overflow-x:auto}
-.card{background:var(--card);border-radius:10px;padding:16px;margin:14px 0}
-.ctl{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center;margin-bottom:8px}
-.ctl label{font-size:.9rem}
-input[type=range]{width:100%}
-select{font:inherit;padding:2px 6px}
-.big{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin:12px 0}
-.big div{background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:8px 10px}
-.big b{display:block;font-size:1.35rem}
-.big span{font-size:.8rem;color:var(--mut)}
-.bar{display:flex;height:22px;border-radius:5px;overflow:hidden;margin:4px 0 2px;font-size:.75rem;color:#fff}
-.bar i{display:flex;align-items:center;justify-content:center;font-style:normal;white-space:nowrap;overflow:hidden}
-svg{max-width:100%;height:auto}
-code{background:var(--card);padding:1px 5px;border-radius:4px;font-size:.9em}
-footer{max-width:860px;margin:40px auto;padding:0 18px;color:var(--mut);font-size:.85rem}
-</style>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Predicting 30-day diabetic readmission with logistic regression from scratch</title>
+  <style>
+    :root {
+      --bg: #fff;
+      --fg: #1c2330;
+      --mut: #5b6575;
+      --line: #dde2ea;
+      --acc: #2a5db0;
+      --card: #f4f6fa;
+      --ok: #2e8b57;
+      --bad: #c0504d;
+      --warn: #d9a441
+    }
+
+    @media (prefers-color-scheme:dark) {
+      :root {
+        --bg: #14181f;
+        --fg: #e6e9ef;
+        --mut: #9aa4b5;
+        --line: #2c3442;
+        --acc: #7fa8ee;
+        --card: #1c222c;
+        --ok: #5ec28a;
+        --bad: #e07a77;
+        --warn: #e3b865
+      }
+    }
+
+    * {
+      box-sizing: border-box
+    }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--fg);
+      font: 16px/1.6 system-ui, -apple-system, Segoe UI, Roboto, sans-serif
+    }
+
+    header,
+    main {
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 0 18px
+    }
+
+    header {
+      padding-top: 36px
+    }
+
+    h1 {
+      font-size: 1.8rem;
+      line-height: 1.25;
+      margin: 0 0 8px
+    }
+
+    h2 {
+      margin-top: 2.4rem;
+      padding-top: .4rem;
+      border-top: 1px solid var(--line);
+      font-size: 1.3rem
+    }
+
+    nav {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px 14px;
+      margin: 14px 0;
+      font-size: .9rem
+    }
+
+    nav a {
+      color: var(--acc);
+      text-decoration: none
+    }
+
+    p.sub,
+    .note {
+      color: var(--mut)
+    }
+
+    .note {
+      font-size: .88rem
+    }
+
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      font-size: .88rem;
+      margin: 10px 0
+    }
+
+    th,
+    td {
+      border-bottom: 1px solid var(--line);
+      padding: 5px 8px;
+      text-align: right
+    }
+
+    th:first-child,
+    td:first-child {
+      text-align: left
+    }
+
+    .wrap {
+      overflow-x: auto
+    }
+
+    .card {
+      background: var(--card);
+      border-radius: 10px;
+      padding: 16px;
+      margin: 14px 0
+    }
+
+    .ctl {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px 18px;
+      align-items: center;
+      margin-bottom: 8px
+    }
+
+    .ctl label {
+      font-size: .9rem
+    }
+
+    input[type=range] {
+      width: 100%
+    }
+
+    select {
+      font: inherit;
+      padding: 2px 6px
+    }
+
+    .big {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+      gap: 10px;
+      margin: 12px 0
+    }
+
+    .big div {
+      background: var(--bg);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 8px 10px
+    }
+
+    .big b {
+      display: block;
+      font-size: 1.35rem
+    }
+
+    .big span {
+      font-size: .8rem;
+      color: var(--mut)
+    }
+
+    .bar {
+      display: flex;
+      height: 22px;
+      border-radius: 5px;
+      overflow: hidden;
+      margin: 4px 0 2px;
+      font-size: .75rem;
+      color: #fff
+    }
+
+    .bar i {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-style: normal;
+      white-space: nowrap;
+      overflow: hidden
+    }
+
+    svg {
+      max-width: 100%;
+      height: auto
+    }
+
+    code {
+      background: var(--card);
+      padding: 1px 5px;
+      border-radius: 4px;
+      font-size: .9em
+    }
+
+    footer {
+      max-width: 860px;
+      margin: 40px auto;
+      padding: 0 18px;
+      color: var(--mut);
+      font-size: .85rem
+    }
+  </style>
 </head>
+
 <body>
-<header>
-<h1>Predicting 30-day readmission of diabetic patients with logistic regression written from scratch</h1>
-<p class="sub">ES 335 course project · Diabetes 130-US Hospitals data (OpenML 4541, 1999–2008) · <b>[TODO: names, GitHub repository link]</b></p>
-<nav><a href="#question">Question</a><a href="#data">Data</a><a href="#prep">Preprocessing</a><a href="#methods">Methods</a><a href="#eval">Evaluation</a><a href="#results">Results</a><a href="#explore">Try it</a><a href="#errors">Errors</a><a href="#fair">Fairness</a><a href="#limits">Limitations</a><a href="#concl">Conclusion</a><a href="#repro">Reproduce</a></nav>
-</header>
-<main>
+  <header>
+    <h1>Predicting 30-day readmission of diabetic patients with logistic regression written from scratch</h1>
+    <p class="sub">ES 335 course project · Abhimanyu Arya (roll number 25110007) · Diabetes 130-US Hospitals data
+      (OpenML 4541, 1999–2008) · <a href="https://github.com/Abhimanyu-arya/30-Day-Hospital-Readmission-Prediction">Code
+        on GitHub</a></p>
+    <nav><a href="#question">Question</a><a href="#data">Data</a><a href="#prep">Preprocessing</a><a
+        href="#methods">Methods</a><a href="#eval">Evaluation</a><a href="#results">Results</a><a href="#explore">Try
+        it</a><a href="#errors">Errors</a><a href="#fair">Fairness</a><a href="#limits">Limitations</a><a
+        href="#concl">Conclusion</a><a href="#repro">Reproduce</a></nav>
+  </header>
+  <main>
 
-<h2 id="question">Question</h2>
-<p>Can a model use what is known when a diabetic patient is discharged to flag encounters that end in a readmission within 30 days, and is flagging worth it once a missed readmission is weighed against an unnecessary follow-up? One row is one hospital encounter, the target is <code>readmit_30d</code> (about 11.4% positive), and the prediction is made at discharge. Results describe association and prediction on 1999–2008 US hospital data, not causes.</p>
+    <h2 id="question">Question</h2>
+    <p>Can a model use what is known when a diabetic patient is discharged to flag encounters that end in a readmission
+      within 30 days, and is flagging worth it once a missed readmission is weighed against an unnecessary follow-up?
+      One row is one hospital encounter, the target is <code>readmit_30d</code> (about 11.4% positive), and the
+      prediction is made at discharge. Results describe association and prediction on 1999–2008 US hospital data, not
+      causes.</p>
 
-<h2 id="data">Data</h2>
-<p>The data are 99,320 encounters from 69,979 patients across 130 US hospitals (Strack et al., 2014), downloaded from OpenML. Patients with several encounters are common (1.42 encounters per patient in the training split), so the data were split <b>by patient</b>: 70% train, 20% test, 10% validation (seed 42), with no patient in more than one split. Positive rates are 11.35%, 11.40% and 11.63%. Row-level data are not published here.</p>
-<p>Main quality issues: <code>weight</code> was 97% missing and was dropped; specialty (49%) and payer (40%) were kept with a <code>Missing</code> category; patients who died or went to hospice were removed because they cannot be readmitted.</p>
+    <h2 id="data">Data</h2>
+    <p>The data are 99,320 encounters from 69,979 patients across 130 US hospitals (Strack et al., 2014), downloaded
+      from OpenML. Patients with several encounters are common (1.42 encounters per patient in the training split), so
+      the data were split <b>by patient</b>: 70% train, 20% test, 10% validation (seed 42), with no patient in more than
+      one split. Positive rates are 11.35%, 11.40% and 11.63%. Row-level data are not published here.</p>
+    <p>Main quality issues: <code>weight</code> was 97% missing and was dropped; specialty (49%) and payer (40%) were
+      kept with a <code>Missing</code> category; patients who died or went to hospice were removed because they cannot
+      be readmitted.</p>
 
-<h2 id="prep">Preprocessing</h2>
-<p>The 99 features include length of stay, procedure, lab and medication counts, prior-year outpatient, emergency and inpatient visits, diagnosis categories, discharge and admission groups, and seven medication columns. Categories are one-hot encoded with one reference level dropped, so the design matrix stays full rank. Thirteen continuous columns are standardised with <b>training-patient</b> statistics only; I rebuilt them from the raw file and matched the saved features to about 1e-15. Race is excluded from the features and kept only for the fairness audit, though proxies for race remain in the features.</p>
+    <h2 id="prep">Preprocessing</h2>
+    <p>The 99 features include length of stay, procedure, lab and medication counts, prior-year outpatient, emergency
+      and inpatient visits, diagnosis categories, discharge and admission groups, and seven medication columns.
+      Categories are one-hot encoded with one reference level dropped, so the design matrix stays full rank. Thirteen
+      continuous columns are standardised with <b>training-patient</b> statistics only; I rebuilt them from the raw file
+      and matched the saved features to about 1e-15. Race is excluded from the features and kept only for the fairness
+      audit, though proxies for race remain in the features.</p>
 
-<h2 id="methods">Methods and baselines</h2>
-<p>The main model is logistic regression written from scratch: sigmoid, log loss, gradient and Hessian, fitted by <b>Newton’s method</b>, with gradient descent and Ridge for comparison. Each piece was checked against finite differences and scikit-learn (coefficients agree to about 1e-12). Newton converges in 6 updates. Gradient descent had not converged after 50,000 iterations, because the Hessian is poorly conditioned (condition number 24,808). Ridge did not improve validation loss: the unpenalized model was not overfitting with 69k rows and 99 features.</p>
-<p>Baselines: a constant predictor (the training base rate), random forest and gradient boosting with settings fixed in advance. Accuracy is not used, because always predicting “no readmission” is already 88% accurate.</p>
+    <h2 id="methods">Methods and baselines</h2>
+    <p>The main model is logistic regression written from scratch: sigmoid, log loss, gradient and Hessian, fitted by
+      <b>Newton’s method</b>, with gradient descent and Ridge for comparison. Each piece was checked against finite
+      differences and scikit-learn (coefficients agree to about 1e-12). Newton converges in 6 updates. Gradient descent
+      had not converged after 50,000 iterations, because the Hessian is poorly conditioned (condition number 24,808).
+      Ridge did not improve validation loss: the unpenalized model was not overfitting with 69k rows and 99 features.
+    </p>
+    <p>Baselines: a constant predictor (the training base rate), random forest and gradient boosting with settings fixed
+      in advance. Accuracy is not used, because always predicting “no readmission” is already 88% accurate.</p>
 
-<h2 id="eval">Evaluation design</h2>
-<p>Train is for fitting, validation for every design choice (Ridge strength, ablations, threshold exploration, error analysis), and the <b>test set was scored once</b>, for two models frozen beforehand: the from-scratch Newton model and gradient boosting. The primary metric is log loss, with AUC, Brier score and calibration alongside. Because the cost of a missed readmission is unknown, decisions are evaluated for a range of cost ratios <i>r</i> (a missed readmission costs <i>r</i> times an unnecessary intervention). If probabilities are calibrated, flagging a patient pays off when risk exceeds <code>1/(1+r)</code>, so no threshold is tuned. Intervals are 95% bootstrap intervals over encounters.</p>
+    <h2 id="eval">Evaluation design</h2>
+    <p>Train is for fitting, validation for every design choice (Ridge strength, ablations, threshold exploration, error
+      analysis), and the <b>test set was scored once</b>, for two models frozen beforehand: the from-scratch Newton
+      model and gradient boosting. The primary metric is log loss, with AUC, Brier score and calibration alongside.
+      Because the cost of a missed readmission is unknown, decisions are evaluated for a range of cost ratios <i>r</i>
+      (a missed readmission costs <i>r</i> times an unnecessary intervention). If probabilities are calibrated, flagging
+      a patient pays off when risk exceeds <code>1/(1+r)</code>, so no threshold is tuned. Intervals are 95% bootstrap
+      intervals over encounters.</p>
 
-<h2 id="results">Results</h2>
-<div class="wrap"><table id="tm"></table></div>
-<p>The models beat the base-rate predictor, but modestly: Newton’s Brier score is 4.7% better, and its AUC of about 0.67 means a random readmitted patient is ranked above a random non-readmitted one about two times in three. Logistic regression, random forest and gradient boosting all land at AUC 0.67–0.68, which points to limited information in the features, not a modelling shortfall. Gradient boosting has a small but clear log-loss edge (−0.0026, interval excludes zero on test). Newton is better calibrated (test calibration slope 1.01 against 1.13).</p>
-<div class="card">
-<div class="ctl"><b>Calibration</b>
-<label>Data <select id="csplit"><option value="test">Test (scored once)</option><option value="validation">Validation</option></select></label>
-<label>Model <select id="cmodel"></select></label></div>
-<div id="cal"></div>
-<p class="note">Ten equal-count risk bins; bars are 95% intervals. Points near the dashed line mean the probabilities can be taken at face value.</p>
-</div>
-<p>Six feature-set ablations on validation (dropping payer or specialty columns, <code>log1p</code> on visit counts, adding race back) changed log loss by less than 0.001, so the model is robust to these choices. The strongest signals are prior inpatient visits (odds ratio 1.38 per standard deviation) and discharge to rehab (3.5×).</p>
-<div class="wrap"><table id="tc"></table></div>
-<p class="note">Cluster-robust standard errors (clustered by patient) were within 1% of the naive ones on median. Coefficients describe association only.</p>
+    <h2 id="results">Results</h2>
+    <div class="wrap">
+      <table id="tm"></table>
+    </div>
+    <p>The models beat the base-rate predictor, but modestly: Newton’s Brier score is 4.7% better, and its AUC of about
+      0.67 means a random readmitted patient is ranked above a random non-readmitted one about two times in three.
+      Logistic regression, random forest and gradient boosting all land at AUC 0.67–0.68, which points to limited
+      information in the features, not a modelling shortfall. Gradient boosting has a small but clear log-loss edge
+      (−0.0026, interval excludes zero on test). Newton is better calibrated (test calibration slope 1.01 against 1.13).
+    </p>
+    <div class="card">
+      <div class="ctl"><b>Calibration</b>
+        <label>Data <select id="csplit">
+            <option value="test">Test (scored once)</option>
+            <option value="validation">Validation</option>
+          </select></label>
+        <label>Model <select id="cmodel"></select></label>
+      </div>
+      <div id="cal"></div>
+      <p class="note">Ten equal-count risk bins; bars are 95% intervals. Points near the dashed line mean the
+        probabilities can be taken at face value.</p>
+    </div>
+    <p>Six feature-set ablations on validation (dropping payer or specialty columns, <code>log1p</code> on visit counts,
+      adding race back) changed log loss by less than 0.001, so the model is robust to these choices. The strongest
+      signals are prior inpatient visits (odds ratio 1.38 per standard deviation) and discharge to rehab (3.5×).</p>
+    <div class="wrap">
+      <table id="tc"></table>
+    </div>
+    <p class="note">Cluster-robust standard errors (clustered by patient) were within 1% of the naive ones on median.
+      Coefficients describe association only.</p>
 
-<h2 id="explore">Try it: what does the cost ratio change?</h2>
-<div class="card">
-<div class="ctl">
-<label>Data <select id="xsplit"><option value="test">Test (scored once, frozen)</option><option value="validation">Validation (used for design choices)</option></select></label>
-<label>Model <select id="xmodel"></select></label></div>
-<label for="rs"><b>Cost ratio <i>r</i> = <span id="rv"></span></b> (a missed readmission costs <i>r</i> times an unnecessary follow-up)</label>
-<input id="rs" type="range" min="0" max="13" step="1" value="6">
-<div class="big" id="kp"></div>
-<div class="bar" id="b1"></div><div class="note">Readmissions among 1,000 patients: caught vs missed</div>
-<div class="bar" id="b2"></div><div class="note">Patients flagged: real readmissions vs unnecessary flags</div>
-<hr style="border:0;border-top:1px solid var(--line);margin:16px 0">
-<label for="ts"><b>Or choose a threshold yourself: <span id="tv"></span></b> (cost is computed with the <i>r</i> above)</label>
-<input id="ts" type="range" min="0.02" max="0.7" step="0.001" value="0.167">
-<div class="big" id="tp"></div>
-</div>
-<p class="note">The saving is measured against the cheaper of two trivial policies (flag nobody, flag everybody). For <i>r</i> of 1 or 20 the model has no useful operating point: it flags almost nobody or almost everybody. These are aggregates computed from saved predictions; no patient rows are shown.</p>
+    <h2 id="explore">Try it: what does the cost ratio change?</h2>
+    <div class="card">
+      <div class="ctl">
+        <label>Data <select id="xsplit">
+            <option value="test">Test (scored once, frozen)</option>
+            <option value="validation">Validation (used for design choices)</option>
+          </select></label>
+        <label>Model <select id="xmodel"></select></label>
+      </div>
+      <label for="rs"><b>Cost ratio <i>r</i> = <span id="rv"></span></b> (a missed readmission costs <i>r</i> times an
+        unnecessary follow-up)</label>
+      <input id="rs" type="range" min="0" max="13" step="1" value="6">
+      <div class="big" id="kp"></div>
+      <div class="bar" id="b1"></div>
+      <div class="note">Readmissions among 1,000 patients: caught vs missed</div>
+      <div class="bar" id="b2"></div>
+      <div class="note">Patients flagged: real readmissions vs unnecessary flags</div>
+      <hr style="border:0;border-top:1px solid var(--line);margin:16px 0">
+      <label for="ts"><b>Or choose a threshold yourself: <span id="tv"></span></b> (cost is computed with the <i>r</i>
+        above)</label>
+      <input id="ts" type="range" min="0.02" max="0.7" step="0.001" value="0.167">
+      <div class="big" id="tp"></div>
+    </div>
+    <p class="note">The saving is measured against the cheaper of two trivial policies (flag nobody, flag everybody).
+      For <i>r</i> of 1 or 20 the model has no useful operating point: it flags almost nobody or almost everybody. These
+      are aggregates computed from saved predictions; no patient rows are shown.</p>
 
-<h2 id="errors">Errors</h2>
-<p>At <i>r</i> = 5 on validation the model catches 355 readmissions and misses 818, with 996 unnecessary flags. Missed readmissions look like patients who were correctly left alone: 61% have no prior inpatient visit. Patients with no prior inpatient visit and a home discharge are 42% of validation patients and hold 24% of all readmissions, but their readmission rate is only 6.7%, below the 16.7% break-even for <i>r</i> = 5, and the model flags almost none of them. False alarms are mostly frequent prior utilisers and rehab discharges, who are at high risk but often do not return. These errors indicate limited information in the recorded features and not a fitting failure. Calibration holds across prior-visit counts, including for extreme utilisers.</p>
+    <h2 id="errors">Errors</h2>
+    <p>At <i>r</i> = 5 on validation the model catches 355 readmissions and misses 818, with 996 unnecessary flags.
+      Missed readmissions look like patients who were correctly left alone: 61% have no prior inpatient visit. Patients
+      with no prior inpatient visit and a home discharge are 42% of validation patients and hold 24% of all
+      readmissions, but their readmission rate is only 6.7%, below the 16.7% break-even for <i>r</i> = 5, and the model
+      flags almost none of them. False alarms are mostly frequent prior utilisers and rehab discharges, who are at high
+      risk but often do not return. These errors indicate limited information in the recorded features and not a fitting
+      failure. Calibration holds across prior-visit counts, including for extreme utilisers.</p>
 
-<h2 id="fair">Fairness audit (test set, <i>r</i> = 5, frozen Newton model)</h2>
-<div class="wrap"><table id="tf"></table></div>
-<p>The clearest difference is by age: sensitivity is 36% under 50 and 22% at 60–69 (non-overlapping intervals), and the oldest patients get the most unnecessary flags. Race and gender show no detectable difference between the large groups, but the small race groups have only 8–42 readmissions each, so no claim is possible for them. About 14 groups were compared with no multiple-comparison adjustment, and this audit does not show that the model is “fair”.</p>
+    <h2 id="fair">Fairness audit (test set, <i>r</i> = 5, frozen Newton model)</h2>
+    <div class="wrap">
+      <table id="tf"></table>
+    </div>
+    <p>The clearest difference is by age: sensitivity is 36% under 50 and 22% at 60–69 (non-overlapping intervals), and
+      the oldest patients get the most unnecessary flags. Race and gender show no detectable difference between the
+      large groups, but the small race groups have only 8–42 readmissions each, so no claim is possible for them. About
+      14 groups were compared with no multiple-comparison adjustment, and this audit does not show that the model is
+      “fair”.</p>
 
-<h2 id="limits">Limitations</h2>
-<ul>
-<li><b>Weak signal.</b> At <i>r</i> = 5 about 70% of readmissions are missed; at <i>r</i> = 10 the model catches about three in four but must flag more than half of all patients.</li>
-<li><b>Assumed costs.</b> <i>r</i> is an assumption, and an intervention is treated as a perfect fix.</li>
-<li><b>Calibration.</b> The threshold rule needs calibrated probabilities; gradient boosting is somewhat too conservative.</li>
-<li><b>Proxies and groups.</b> Race is excluded, but proxies remain. Small groups have low power.</li>
-<li><b>Preprocessing.</b> Category thresholds were set on all rows (without labels, except one disclosed threshold); a training-only recomputation is still to do.</li>
-<li><b>Scope.</b> 1999–2008 US data, excluding deaths and hospice; association, not causation. Intervals resample encounters, not patients.</li>
-</ul>
+    <h2 id="limits">Limitations</h2>
+    <ul>
+      <li><b>Weak signal.</b> At <i>r</i> = 5 about 70% of readmissions are missed; at <i>r</i> = 10 the model catches
+        about three in four but must flag more than half of all patients.</li>
+      <li><b>Assumed costs.</b> <i>r</i> is an assumption, and an intervention is treated as a perfect fix.</li>
+      <li><b>Calibration.</b> The threshold rule needs calibrated probabilities; gradient boosting is somewhat too
+        conservative.</li>
+      <li><b>Proxies and groups.</b> Race is excluded, but proxies remain. Small groups have low power.</li>
+      <li><b>Preprocessing.</b> Category thresholds were set on all rows (without labels, except one disclosed
+        threshold); a training-only recomputation is still to do.</li>
+      <li><b>Scope.</b> 1999–2008 US data, excluding deaths and hospice; association, not causation. Intervals resample
+        encounters, not patients.</li>
+    </ul>
 
-<h2 id="concl">Conclusion</h2>
-<p>A logistic regression written from scratch and verified against standard libraries reaches nearly the accuracy of flexible models on this task (AUC about 0.67–0.68), is better calibrated, and saves cost over trivial policies when a missed readmission is worth about 3–10 unnecessary follow-ups. It is a weak predictor and misses most readmissions, so it would not be a reliable standalone tool. The main gains in this project came from careful splitting, fair evaluation and honest reporting, not from model complexity.</p>
+    <h2 id="concl">Conclusion</h2>
+    <p>A logistic regression written from scratch and verified against standard libraries reaches nearly the accuracy of
+      flexible models on this task (AUC about 0.67–0.68), is better calibrated, and saves cost over trivial policies
+      when a missed readmission is worth about 3–10 unnecessary follow-ups. It is a weak predictor and misses most
+      readmissions, so it would not be a reliable standalone tool. The main gains in this project came from careful
+      splitting, fair evaluation and honest reporting, not from model complexity.</p>
 
-<h2 id="repro">Reproduce</h2>
-<p>Code and notes: <b>[TODO: repository link]</b>. Data: OpenML ID 4541 (check the licence). Run <code>Data_Loading_Processing.py</code>, <code>Cleaned_Data_Encoding.py</code>, <code>DataSplit.py</code>, <code>ModelClass.py</code>, then the analysis scripts and <code>export_results.py</code>, which writes the <code>results.json</code> this page reads. Seeds: split 42, models 0. The README lists every file and check. AI tools (Claude) were used for review and for drafting analysis scripts; all outputs were checked by the author.</p>
-</main>
-<footer>Opening this file directly from disk blocks <code>results.json</code> in most browsers. Run <code>python -m http.server</code> in this folder and open <code>localhost:8000</code>, or publish with GitHub Pages.</footer>
+    <h2 id="repro">Reproduce</h2>
+    <p>Code and notes: <a
+        href="https://github.com/Abhimanyu-arya/30-Day-Hospital-Readmission-Prediction">github.com/Abhimanyu-arya/30-Day-Hospital-Readmission-Prediction</a>.
+      Data: OpenML ID 4541, which carries the UCI dataset “Diabetes 130-US Hospitals for Years 1999–2008” (licence CC BY
+      4.0 per the UCI page). Credit: Clore, J., Cios, K., DeShazo, J., &amp; Strack, B. (2014), UCI Machine Learning
+      Repository, <a href="https://doi.org/10.24432/C5230J">doi:10.24432/C5230J</a>. Run
+      <code>Data_Loading_Processing.py</code>,
+      <code>Cleaned_Data_Encoding.py</code>, <code>DataSplit.py</code>, <code>ModelClass.py</code>, then the analysis
+      scripts and <code>export_results.py</code>, which writes the <code>results.json</code> this page reads. Seeds:
+      split 42, models 0. The README lists every file and check. AI tools (Claude) were used for review and for drafting
+      analysis scripts; all outputs were checked by the author.
+    </p>
+  </main>
+  <footer>Opening this file directly from disk blocks <code>results.json</code> in most browsers. Run
+    <code>python -m http.server</code> in this folder and open <code>localhost:8000</code>, or publish with GitHub
+    Pages.
+  </footer>
 
-<script>
-const $=id=>document.getElementById(id);
-const f=(v,d=3)=>v==null?'–':Number(v).toFixed(d);
-const ci=(a,l,h,d=3)=>f(a,d)+' ['+f(l,d)+', '+f(h,d)+']';
-let D;
-fetch('results.json').then(r=>r.json()).then(d=>{D=d;init()}).catch(e=>{document.body.insertAdjacentHTML('afterbegin','<p style="color:#c0504d;padding:12px">Could not load results.json ('+e+'). Serve this folder over http, see the footer.</p>')});
+  <script>
+    const $ = id => document.getElementById(id);
+    const f = (v, d = 3) => v == null ? '–' : Number(v).toFixed(d);
+    const ci = (a, l, h, d = 3) => f(a, d) + ' [' + f(l, d) + ', ' + f(h, d) + ']';
+    let D;
+    fetch('results.json').then(r => r.json()).then(d => { D = d; init() }).catch(e => { document.body.insertAdjacentHTML('afterbegin', '<p style="color:#c0504d;padding:12px">Could not load results.json (' + e + '). Serve this folder over http, see the footer.</p>') });
 
-function init(){
-  const M=D.meta.models;
-  for(const id of ['xmodel','cmodel']) $(id).innerHTML=M.map(m=>'<option>'+m+'</option>').join('');
-  $('cmodel').insertAdjacentHTML('beforeend','<option>Random forest</option>');
-  // metrics table
-  const T=D.metrics.test;
-  $('tm').innerHTML='<tr><th>Test set</th><th>Log loss</th><th>AUC</th><th>Brier</th></tr>'+T.map(r=>'<tr><td>'+r.model+'</td><td>'+ci(r.logloss,r.ll_lo,r.ll_hi,4)+'</td><td>'+(r.model=='Baseline'?'0.500':ci(r.auc,r.auc_lo,r.auc_hi))+'</td><td>'+ci(r.brier,r.br_lo,r.br_hi,4)+'</td></tr>').join('');
-  // coefficients
-  const C=[...D.coefficients].filter(r=>r.feature!='intercept').sort((a,b)=>Math.abs(b.z_cluster)-Math.abs(a.z_cluster)).slice(0,8);
-  $('tc').innerHTML='<tr><th>Strongest coefficients</th><th>Odds ratio [95% CI]</th><th>z</th></tr>'+C.map(r=>'<tr><td>'+r.feature+'</td><td>'+ci(r.or,r.or_lo,r.or_hi,2)+'</td><td>'+f(r.z_cluster,1)+'</td></tr>').join('');
-  // fairness
-  const F=D.fairness_test.filter(r=>r.model=='Newton'&&r.r==5);
-  $('tf').innerHTML='<tr><th>Group</th><th>n</th><th>Readmissions</th><th>AUC</th><th>Sensitivity [95% CI]</th><th>False-positive rate</th></tr>'+F.map(r=>'<tr><td>'+r.attribute+': '+r.group+'</td><td>'+r.n+'</td><td>'+r.positives+'</td><td>'+f(r.auc)+'</td><td>'+ci(r.sensitivity,r.sens_lo,r.sens_hi)+'</td><td>'+f(r.fpr)+'</td></tr>').join('');
-  for(const id of ['xsplit','xmodel','rs','ts']) $(id).addEventListener('input',explore);
-  for(const id of ['csplit','cmodel']) $(id).addEventListener('input',cal);
-  explore(); cal();
-}
+    function init() {
+      const M = D.meta.models;
+      for (const id of ['xmodel', 'cmodel']) $(id).innerHTML = M.map(m => '<option>' + m + '</option>').join('');
+      $('cmodel').insertAdjacentHTML('beforeend', '<option>Random forest</option>');
+      // metrics table
+      const T = D.metrics.test;
+      $('tm').innerHTML = '<tr><th>Test set</th><th>Log loss</th><th>AUC</th><th>Brier</th></tr>' + T.map(r => '<tr><td>' + r.model + '</td><td>' + ci(r.logloss, r.ll_lo, r.ll_hi, 4) + '</td><td>' + (r.model == 'Baseline' ? '0.500' : ci(r.auc, r.auc_lo, r.auc_hi)) + '</td><td>' + ci(r.brier, r.br_lo, r.br_hi, 4) + '</td></tr>').join('');
+      // coefficients
+      const C = [...D.coefficients].filter(r => r.feature != 'intercept').sort((a, b) => Math.abs(b.z_cluster) - Math.abs(a.z_cluster)).slice(0, 8);
+      $('tc').innerHTML = '<tr><th>Strongest coefficients</th><th>Odds ratio [95% CI]</th><th>z</th></tr>' + C.map(r => '<tr><td>' + r.feature + '</td><td>' + ci(r.or, r.or_lo, r.or_hi, 2) + '</td><td>' + f(r.z_cluster, 1) + '</td></tr>').join('');
+      // fairness
+      const F = D.fairness_test.filter(r => r.model == 'Newton' && r.r == 5);
+      $('tf').innerHTML = '<tr><th>Group</th><th>n</th><th>Readmissions</th><th>AUC</th><th>Sensitivity [95% CI]</th><th>False-positive rate</th></tr>' + F.map(r => '<tr><td>' + r.attribute + ': ' + r.group + '</td><td>' + r.n + '</td><td>' + r.positives + '</td><td>' + f(r.auc) + '</td><td>' + ci(r.sensitivity, r.sens_lo, r.sens_hi) + '</td><td>' + f(r.fpr) + '</td></tr>').join('');
+      for (const id of ['xsplit', 'xmodel', 'rs', 'ts']) $(id).addEventListener('input', explore);
+      for (const id of ['csplit', 'cmodel']) $(id).addEventListener('input', cal);
+      explore(); cal();
+    }
 
-function tile(v,l){return '<div><b>'+v+'</b><span>'+l+'</span></div>'}
-function bar(el,parts){const s=parts.reduce((a,p)=>a+p[0],0)||1;$(el).innerHTML=parts.map(p=>'<i style="width:'+(100*p[0]/s)+'%;background:'+p[2]+'">'+(p[0]/s>.12?p[1]:'')+'</i>').join('')}
+    function tile(v, l) { return '<div><b>' + v + '</b><span>' + l + '</span></div>' }
+    function bar(el, parts) { const s = parts.reduce((a, p) => a + p[0], 0) || 1; $(el).innerHTML = parts.map(p => '<i style="width:' + (100 * p[0] / s) + '%;background:' + p[2] + '">' + (p[0] / s > .12 ? p[1] : '') + '</i>').join('') }
 
-function explore(){
-  const S=D.splits[$('xsplit').value], m=$('xmodel').value, i=+$('rs').value, row=S.cost[m][i], n=S.n, r=row.r;
-  $('rv').textContent=r;
-  const k=x=>1000*x/n, fl=row.tp+row.fp;
-  $('kp').innerHTML=tile(f(row.threshold),'threshold 1/(1+r)')+tile(f(k(fl),0),'flagged per 1,000')+tile(f(k(row.tp),0),'caught (of '+f(1000*S.prevalence,0)+')')+tile(f(k(row.fn),0),'missed')+tile(f(k(row.fp),0),'unnecessary flags')+tile(f(row.tp/Math.max(fl,1),2),'precision')+tile(ci(row.saving,row.sav_lo,row.sav_hi,3),'saving per patient vs best trivial policy ('+f(100*row.saving/row.trivial,1)+'%)');
-  bar('b1',[[row.tp,'caught '+f(k(row.tp),0),'var(--ok)'],[row.fn,'missed '+f(k(row.fn),0),'var(--bad)']]);
-  bar('b2',[[row.tp,'real '+f(k(row.tp),0),'var(--ok)'],[row.fp,'unnecessary '+f(k(row.fp),0),'var(--warn)']]);
-  const t=+$('ts').value; $('tv').textContent=f(t);
-  const g=S.grid[m], j=Math.round((t-D.meta.grid_start)/D.meta.grid_step), tp=g.pos_ge[j], fp=g.neg_ge[j], P=S.positives, fn=P-tp, N=n-P;
-  $('tp').innerHTML=tile(f(k(tp+fp),0),'flagged per 1,000')+tile(f(tp/P,2),'sensitivity')+tile(f(tp/Math.max(tp+fp,1),2),'precision')+tile(f(fp/N,2),'false-positive rate')+tile(f((r*fn+fp)/n,3),'cost per patient (r = '+r+')')+tile(f(row.trivial,3),'best trivial policy');
-}
+    function explore() {
+      const S = D.splits[$('xsplit').value], m = $('xmodel').value, i = +$('rs').value, row = S.cost[m][i], n = S.n, r = row.r;
+      $('rv').textContent = r;
+      const k = x => 1000 * x / n, fl = row.tp + row.fp;
+      $('kp').innerHTML = tile(f(row.threshold), 'threshold 1/(1+r)') + tile(f(k(fl), 0), 'flagged per 1,000') + tile(f(k(row.tp), 0), 'caught (of ' + f(1000 * S.prevalence, 0) + ')') + tile(f(k(row.fn), 0), 'missed') + tile(f(k(row.fp), 0), 'unnecessary flags') + tile(f(row.tp / Math.max(fl, 1), 2), 'precision') + tile(ci(row.saving, row.sav_lo, row.sav_hi, 3), 'saving per patient vs best trivial policy (' + f(100 * row.saving / row.trivial, 1) + '%)');
+      bar('b1', [[row.tp, 'caught ' + f(k(row.tp), 0), 'var(--ok)'], [row.fn, 'missed ' + f(k(row.fn), 0), 'var(--bad)']]);
+      bar('b2', [[row.tp, 'real ' + f(k(row.tp), 0), 'var(--ok)'], [row.fp, 'unnecessary ' + f(k(row.fp), 0), 'var(--warn)']]);
+      const t = +$('ts').value; $('tv').textContent = f(t);
+      const g = S.grid[m], j = Math.round((t - D.meta.grid_start) / D.meta.grid_step), tp = g.pos_ge[j], fp = g.neg_ge[j], P = S.positives, fn = P - tp, N = n - P;
+      $('tp').innerHTML = tile(f(k(tp + fp), 0), 'flagged per 1,000') + tile(f(tp / P, 2), 'sensitivity') + tile(f(tp / Math.max(tp + fp, 1), 2), 'precision') + tile(f(fp / N, 2), 'false-positive rate') + tile(f((r * fn + fp) / n, 3), 'cost per patient (r = ' + r + ')') + tile(f(row.trivial, 3), 'best trivial policy');
+    }
 
-function cal(){
-  const pts=D.splits[$('csplit').value].calibration[$('cmodel').value], W=420, H=360, p=40, L=Math.max(.35,Math.ceil(Math.max(...pts.map(q=>q.obs+q.half))*20)/20);
-  const x=v=>p+v/L*(W-p-10), y=v=>H-p-v/L*(H-p-10);
-  let s='<svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="Calibration plot"><g stroke="var(--line)" fill="var(--mut)" font-size="11">';
-  for(let v=0;v<=L+1e-9;v+=.05){s+='<line x1="'+x(v)+'" x2="'+x(v)+'" y1="'+y(0)+'" y2="'+y(L)+'"/><line x1="'+x(0)+'" x2="'+x(L)+'" y1="'+y(v)+'" y2="'+y(v)+'"/><text stroke="none" x="'+(x(v)-8)+'" y="'+(H-p+14)+'">'+v.toFixed(2)+'</text><text stroke="none" x="4" y="'+(y(v)+4)+'">'+v.toFixed(2)+'</text>'}
-  s+='</g><line x1="'+x(0)+'" y1="'+y(0)+'" x2="'+x(L)+'" y2="'+y(L)+'" stroke="var(--mut)" stroke-dasharray="5 4"/>';
-  s+='<polyline fill="none" stroke="var(--acc)" stroke-width="1.5" points="'+pts.map(q=>x(q.pred)+','+y(q.obs)).join(' ')+'"/>';
-  for(const q of pts) s+='<line x1="'+x(q.pred)+'" x2="'+x(q.pred)+'" y1="'+y(Math.max(q.obs-q.half,0))+'" y2="'+y(q.obs+q.half)+'" stroke="var(--acc)"/><circle cx="'+x(q.pred)+'" cy="'+y(q.obs)+'" r="4" fill="var(--acc)"/>';
-  s+='<text x="'+(W/2-70)+'" y="'+(H-4)+'" fill="var(--mut)" font-size="12">Mean predicted probability</text><text transform="translate(12 '+(H/2+60)+') rotate(-90)" fill="var(--mut)" font-size="12">Observed readmission rate</text></svg>';
-  $('cal').innerHTML=s;
-}
-</script>
+    function cal() {
+      const pts = D.splits[$('csplit').value].calibration[$('cmodel').value], W = 420, H = 360, p = 40, L = Math.max(.35, Math.ceil(Math.max(...pts.map(q => q.obs + q.half)) * 20) / 20);
+      const x = v => p + v / L * (W - p - 10), y = v => H - p - v / L * (H - p - 10);
+      let s = '<svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="Calibration plot"><g stroke="var(--line)" fill="var(--mut)" font-size="11">';
+      for (let v = 0; v <= L + 1e-9; v += .05) { s += '<line x1="' + x(v) + '" x2="' + x(v) + '" y1="' + y(0) + '" y2="' + y(L) + '"/><line x1="' + x(0) + '" x2="' + x(L) + '" y1="' + y(v) + '" y2="' + y(v) + '"/><text stroke="none" x="' + (x(v) - 8) + '" y="' + (H - p + 14) + '">' + v.toFixed(2) + '</text><text stroke="none" x="4" y="' + (y(v) + 4) + '">' + v.toFixed(2) + '</text>' }
+      s += '</g><line x1="' + x(0) + '" y1="' + y(0) + '" x2="' + x(L) + '" y2="' + y(L) + '" stroke="var(--mut)" stroke-dasharray="5 4"/>';
+      s += '<polyline fill="none" stroke="var(--acc)" stroke-width="1.5" points="' + pts.map(q => x(q.pred) + ',' + y(q.obs)).join(' ') + '"/>';
+      for (const q of pts) s += '<line x1="' + x(q.pred) + '" x2="' + x(q.pred) + '" y1="' + y(Math.max(q.obs - q.half, 0)) + '" y2="' + y(q.obs + q.half) + '" stroke="var(--acc)"/><circle cx="' + x(q.pred) + '" cy="' + y(q.obs) + '" r="4" fill="var(--acc)"/>';
+      s += '<text x="' + (W / 2 - 70) + '" y="' + (H - 4) + '" fill="var(--mut)" font-size="12">Mean predicted probability</text><text transform="translate(12 ' + (H / 2 + 60) + ') rotate(-90)" fill="var(--mut)" font-size="12">Observed readmission rate</text></svg>';
+      $('cal').innerHTML = s;
+    }
+  </script>
 </body>
+
 </html>
