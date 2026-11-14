@@ -246,7 +246,8 @@
     <p>The data are 99,320 encounters from 69,979 patients across 130 US hospitals (Strack et al., 2014), downloaded
       from OpenML. Patients with several encounters are common (1.42 encounters per patient in the training split), so
       the data were split <b>by patient</b>: 70% train, 20% test, 10% validation (seed 42), with no patient in more than
-      one split. Positive rates are 11.35%, 11.40% and 11.63%. Row-level data are not published here.</p>
+      one split. Positive rates are 11.35%, 11.40% and 11.63%. No row-level data are published on this site or in the
+      current repository files; the README notes that early commits contained the public dataset.</p>
     <p>Main quality issues: <code>weight</code> was 97% missing and was dropped; specialty (49%) and payer (40%) were
       kept with a <code>Missing</code> category; patients who died or went to hospice were removed because they cannot
       be readmitted.</p>
@@ -319,6 +320,13 @@
       <p class="note">Ten equal-count risk bins; bars are 95% intervals. Points near the dashed line mean the
         probabilities can be taken at face value.</p>
     </div>
+    <noscript>
+      <figure><img src="figures/calibration_val.png"
+          alt="Calibration curves on validation data for Newton, gradient boosting and random forest">
+        <figcaption>Calibration on validation data (JavaScript is off, so the interactive plot is not shown). Newton
+          tracks the diagonal; random forest under-predicts at the top.</figcaption>
+      </figure>
+    </noscript>
     <p>Six feature-set ablations on validation (dropping payer or specialty columns, <code>log1p</code> on visit counts,
       adding race back) changed log loss by less than 0.001, so the model is robust to these choices. The strongest
       signals are prior inpatient visits (odds ratio 1.38 per standard deviation) and discharge to rehab (3.5×).</p>
@@ -327,6 +335,122 @@
     </div>
     <p class="note">Cluster-robust standard errors (clustered by patient) were within 1% of the naive ones on median.
       Coefficients describe association only.</p>
+    <h3>Test-set results at the frozen thresholds (per 1,000 patients)</h3>
+    <p>The test set holds about 114 readmissions per 1,000 patients. Saving is the cost reduction per patient compared
+      with the cheaper of flagging nobody or flagging everybody; intervals are 95% bootstrap intervals. The interactive
+      section below shows the same numbers for any cost ratio.</p>
+    <div class="wrap">
+      <table>
+        <tr>
+          <th>r</th>
+          <th>Model</th>
+          <th>Threshold</th>
+          <th>Cost per patient</th>
+          <th>Best trivial policy</th>
+          <th>Saving [95% CI]</th>
+          <th>Flagged per 1,000</th>
+          <th>Caught</th>
+          <th>Missed</th>
+          <th>Unnecessary flags</th>
+        </tr>
+        <tr>
+          <td>2</td>
+          <td>Newton</td>
+          <td>0.333</td>
+          <td>0.2231</td>
+          <td>0.2280</td>
+          <td>0.0049 [0.0022, 0.0076]</td>
+          <td>18.9</td>
+          <td>7.9</td>
+          <td>106.1</td>
+          <td>10.9</td>
+        </tr>
+        <tr>
+          <td>2</td>
+          <td>Gradient boosting</td>
+          <td>0.333</td>
+          <td>0.2201</td>
+          <td>0.2280</td>
+          <td>0.0079 [0.0052, 0.0106]</td>
+          <td>16.4</td>
+          <td>8.1</td>
+          <td>105.9</td>
+          <td>8.3</td>
+        </tr>
+        <tr>
+          <td>3</td>
+          <td>Newton</td>
+          <td>0.250</td>
+          <td>0.3259</td>
+          <td>0.3420</td>
+          <td>0.0161 [0.0108, 0.0217]</td>
+          <td>44.0</td>
+          <td>15.0</td>
+          <td>99.0</td>
+          <td>29.0</td>
+        </tr>
+        <tr>
+          <td>3</td>
+          <td>Gradient boosting</td>
+          <td>0.250</td>
+          <td>0.3210</td>
+          <td>0.3420</td>
+          <td>0.0210 [0.0155, 0.0267]</td>
+          <td>42.3</td>
+          <td>15.8</td>
+          <td>98.2</td>
+          <td>26.5</td>
+        </tr>
+        <tr>
+          <td>5</td>
+          <td>Newton</td>
+          <td>0.167</td>
+          <td>0.5031</td>
+          <td>0.5700</td>
+          <td>0.0669 [0.0543, 0.0801]</td>
+          <td>131.3</td>
+          <td>33.0</td>
+          <td>81.0</td>
+          <td>98.3</td>
+        </tr>
+        <tr>
+          <td>5</td>
+          <td>Gradient boosting</td>
+          <td>0.167</td>
+          <td>0.4958</td>
+          <td>0.5700</td>
+          <td>0.0742 [0.0606, 0.0882]</td>
+          <td>151.8</td>
+          <td>37.7</td>
+          <td>76.3</td>
+          <td>114.1</td>
+        </tr>
+        <tr>
+          <td>10</td>
+          <td>Newton</td>
+          <td>0.091</td>
+          <td>0.7372</td>
+          <td>0.8860</td>
+          <td>0.1488 [0.1249, 0.1726]</td>
+          <td>556.2</td>
+          <td>87.2</td>
+          <td>26.8</td>
+          <td>469.0</td>
+        </tr>
+        <tr>
+          <td>10</td>
+          <td>Gradient boosting</td>
+          <td>0.091</td>
+          <td>0.7351</td>
+          <td>0.8860</td>
+          <td>0.1509 [0.1260, 0.1749]</td>
+          <td>541.9</td>
+          <td>86.1</td>
+          <td>27.9</td>
+          <td>455.8</td>
+        </tr>
+      </table>
+    </div>
 
     <h2 id="explore">Try it: what does the cost ratio change?</h2>
     <div class="card">
@@ -383,7 +507,8 @@
         conservative.</li>
       <li><b>Proxies and groups.</b> Race is excluded, but proxies remain. Small groups have low power.</li>
       <li><b>Preprocessing.</b> Category thresholds were set on all rows (without labels, except one disclosed
-        threshold); a training-only recomputation is still to do.</li>
+        threshold). A training-only recomputation found the same drug and specialty decisions; one rare payer code
+        differed at the margin (see the README).</li>
       <li><b>Scope.</b> 1999–2008 US data, excluding deaths and hospice; association, not causation. Intervals resample
         encounters, not patients.</li>
     </ul>
@@ -391,7 +516,8 @@
     <h2 id="concl">Conclusion</h2>
     <p>A logistic regression written from scratch and verified against standard libraries reaches nearly the accuracy of
       flexible models on this task (AUC about 0.67–0.68), is better calibrated, and saves cost over trivial policies
-      when a missed readmission is worth about 3–10 unnecessary follow-ups. It is a weak predictor and misses most
+      when a missed readmission is worth about 2–10 unnecessary follow-ups (the saving is small at 2). It is a weak
+      predictor and misses most
       readmissions, so it would not be a reliable standalone tool. The main gains in this project came from careful
       splitting, fair evaluation and honest reporting, not from model complexity.</p>
 
@@ -408,10 +534,6 @@
       Antigravity for environment errors) were used; all outputs were checked by the author.
     </p>
   </main>
-  <footer>Opening this file directly from disk blocks <code>results.json</code> in most browsers. Run
-    <code>python -m http.server</code> in this folder and open <code>localhost:8000</code>, or publish with GitHub
-    Pages.
-  </footer>
 
   <script>
     const $ = id => document.getElementById(id);

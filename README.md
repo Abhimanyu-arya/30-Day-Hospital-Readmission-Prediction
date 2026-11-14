@@ -6,6 +6,8 @@ Newton's method, calibration, cost-sensitive thresholds and fairness analysis on
 **Live website:** https://abhimanyu-arya.github.io/30-Day-Hospital-Readmission-Prediction/ (source in `docs/`).
 **Code and results:** this repository (`results/` holds the aggregate outputs; no data files).
 
+**Summary.** A logistic regression written from scratch (Newton's method, verified against scikit-learn and statsmodels) predicts 30-day readmission of diabetic inpatients from information available at discharge. On the held-out test set (19,835 encounters, scored once for two models frozen beforehand) it reaches an AUC of 0.675 [0.664, 0.686] against 0.500 for the base-rate baseline and is well calibrated (slope 1.01); gradient boosting is slightly better (AUC 0.681, log loss lower by 0.0026). The signal is weak: at a cost ratio of 5 the model misses about 70% of readmissions. It still saves cost compared with the best trivial policy for cost ratios from 2 to 10 (11.7% at a ratio of 5), and its performance varies by age (lowest sensitivity at ages 60 to 69). Section 16 explains why it is not a standalone tool.
+
 ## Rubric map
 
 | Course criterion | Where the evidence is |
