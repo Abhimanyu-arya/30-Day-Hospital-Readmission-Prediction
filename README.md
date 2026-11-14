@@ -6,8 +6,6 @@ Newton's method, calibration, cost-sensitive thresholds and fairness analysis on
 **Live website:** https://abhimanyu-arya.github.io/30-Day-Hospital-Readmission-Prediction/ (source in `docs/`).
 **Code and results:** this repository (`results/` holds the aggregate outputs; no data files).
 
-Two items are still open and marked **[TODO]**: the result of the train-only rules check (section 15) and the pinned package versions (section 18).
-
 ## Rubric map
 
 | Course criterion | Where the evidence is |
@@ -73,7 +71,7 @@ Note that `None` in the raw data is read by pandas as NaN, so it is handled expl
 ### Drug columns
 There are 23 drug columns. A near-zero-variance report flagged columns whose most frequent value exceeds 98.46%. Of the 23, 7 have real variation, 2 are constant and 14 are weak. All 23 are aggregated into two columns, `num_med_changes` (count of Up or Down) and `num_med_prescribed` (count not equal to No). The weak columns are dropped, and the 7 strong ones are kept and one-hot encoded: metformin, glimepiride, glipizide, glyburide, pioglitazone, rosiglitazone, insulin.
 
-Disclosure: the 98.46% threshold was chosen while looking at readmission rates per column, so it does take a peek at the label. The threshold itself is based on the share of the dominant value, so the leakage risk is considered minimal. A train-only recomputation of this threshold and of the other category groupings has **not** been done yet (section 15 says exactly what has and has not been verified).
+Disclosure: the 98.46% threshold was chosen while looking at readmission rates per column, so it does take a peek at the label. The threshold itself is based on the share of the dominant value, so the leakage risk is considered minimal. A train-only recomputation of this threshold and of the other data-dependent rules was run (section 15): the drug and specialty decisions do not change, and one rare payer code differs at the margin.
 
 ### Other encodings
 - **age**: bin midpoint (for example `[10-20)` becomes 15), named `age_numeric`. This assumes a linear effect on the log-odds.
@@ -422,7 +420,14 @@ The experiment compares the actual patient-level validation result with a naive 
 
 The 13 standardized columns were rebuilt from the raw `Final_Data.csv` using the mean and standard deviation of the training patients only. The rebuilt values match `X_train`, `X_val` and `X_test` to a maximum error of 3.6e-15, and the dummy columns are unchanged. Validation and test columns have means slightly off zero (largest absolute column mean 0.029 and 0.025), as expected when training statistics are applied. Standardizing with all rows instead would shift single extreme cells by up to 5, 1.8 and 9 standard deviations (train, val, test) because the visit counts are heavy-tailed, so the check would detect a leak.
 
-**Not yet verified:** the top-12 specialty list, the 1% rare-payer threshold and the 98.46% drug-variance threshold were computed on all rows before the split (without using labels, apart from the disclosure in section 3). A script that recomputes all three rules on the training patients only and compares them with the all-rows versions (`train_only_rules_check.py`) has been written. **[TODO: record its result here: whether the dropped drug columns, the top-12 specialties and the merged payer codes are the same.]**
+### Train-only recomputation of the data-dependent rules
+
+Three rules in `Cleaned_Data_Encoding.py` used counts from all rows before the split: the 98.46% drug rule, the top-12 specialties and the 1% payer rule. `train_only_rules_check.py` recomputes each on the training patients only (69,396 rows; the same row filters as the encoding script) and compares.
+
+- **Drug columns (98.46% rule): no change.** The same 7 columns are kept and the same 16 are dropped. The kept columns have a dominant-value share of at most 94.85% (glimepiride), and the next column, repaglinide, has 98.47% on all rows and 98.54% on training rows, so any threshold between 94.9% and 98.4% gives exactly the same columns. The one column whose fate depends on the threshold is repaglinide, which is dropped. The disclosed choice of 98.46% while viewing readmission rates therefore could not have changed which columns were kept.
+- **Top-12 specialties: no change.** The set is identical, with the same reference level (InternalMedicine). The 12th specialty (Psychiatry, 853 rows overall; 608 in training) is well clear of the 13th (Urology, 677; 477).
+- **Payer codes (1% rule): one marginal difference.** On training rows only, `OG` has a share of 0.980% (1.017% on all rows), so it would have been merged into `OtherPayer`; in the pipeline as run it kept its own column (`payer_code_OG`). `FR` (one row in the whole dataset) does not occur in the training split at all, so it is not a training-only difference. A 0.04 percentage-point difference around a threshold is sampling noise. Its effect on predictions is expected to be negligible: dropping all ten payer columns, a much larger change, did not change validation log loss detectably (section 10). The pipeline was not re-run with the train-only version.
+- Every dummy column occurs in the training split (no constant column, and the smallest binary column has 60 ones), so no category exists only in validation or test. The ICD-9 grouping, the discharge, admission and age mappings are fixed rules, not learned from the data.
 
 ## 16. Limitations
 
@@ -434,7 +439,7 @@ The 13 standardized columns were rebuilt from the raw `Final_Data.csv` using the
 6. **Rare drug columns** (for example `rosiglitazone_Down`, 60 rows and 4 positives) have noisy coefficients and should not be interpreted one by one. Ridge shrinks them, but does not improve validation loss.
 7. **Heavy-tailed visit counts** (up to about 50 standard deviations). `log1p` gave the best ablation point estimates, but the effect was not statistically clear and it was not adopted.
 8. **Age** is encoded as bin midpoints, which assumes a linear effect on the log-odds.
-9. **Preprocessing choices** (top-12 specialties, rare-payer threshold, drug variance threshold) were computed on the full data without labels, and the 98.46% threshold was chosen while viewing readmission rates; a train-only recomputation is still to do (section 15).
+9. **Preprocessing choices** (top-12 specialties, rare-payer threshold, drug variance threshold) were computed on the full data without labels, and the 98.46% threshold was chosen while viewing readmission rates. A train-only recomputation (section 15) found the same drug and specialty decisions, and one payer code (`OG`, 1.017% of all rows against 0.980% of training rows) on the other side of the 1% line; the pipeline was not re-run with it.
 10. **Scope.** Patients who died or went to hospice are excluded, the data covers 1999 to 2008 at US hospitals, and results describe prediction and not causes.
 11. **Model form.** Logistic regression assumes linear effects on the log-odds and no interactions. Random forest and gradient boosting are included for that reason, and perform only slightly better. The tree models used fixed, untuned settings.
 12. **Standard errors** assume the model is correctly specified. A coefficient's size measures association only.
@@ -442,11 +447,9 @@ The 13 standardized columns were rebuilt from the raw `Final_Data.csv` using the
 
 ## 17. Remaining work
 
-1. Record the result of `train_only_rules_check.py` in section 15 (and update limitation 9 and section 3 to match).
-2. Optional plots for data understanding (class balance, readmission rate by prior inpatient visits and by age) in `results/figures/` and on the website.
-3. Optional ablations not run: ICD-9 mental health and blood disorder categories, and admission group variants.
-4. Pin package versions from the virtual environment (section 18).
-5. Viva preparation: each student should be able to explain their contribution, key choices, the evaluation design, a limitation, and the effect of a small change (for example a different `r`, or `log1p` on visit counts).
+1. Optional plots for data understanding (class balance, readmission rate by prior inpatient visits and by age) in `results/figures/` and on the website.
+2. Optional ablations not run: ICD-9 mental health and blood disorder categories, admission group variants, and a re-run with `OG` merged into `OtherPayer`.
+3. Viva preparation: each student should be able to explain their contribution, key choices, the evaluation design, a limitation, and the effect of a small change (for example a different `r`, or `log1p` on visit counts).
 
 Done: the static website is published on GitHub Pages (https://abhimanyu-arya.github.io/30-Day-Hospital-Readmission-Prediction/), with a cost-ratio slider, a free threshold slider and a calibration plot reading `docs/results.json`, which aggregates only (no patient-level rows).
 
@@ -470,7 +473,7 @@ Run in this order: `Data_Loading_Processing.py`, `Cleaned_Data_Encoding.py`, `Da
 | `train_only_rules_check.py` | Recomputes the drug, specialty and payer rules on training patients only | no (reads patient split labels only) |
 | `export_results.py` | Builds `results.json` for the website (aggregates only) | uses saved test predictions |
 
-All paths use `BASE = Path(r'E:\ML') / 'Data'`. Seeds: split 42; models `random_state=0`; bootstrap seeds are set in each script. Dependencies are in `requirements.txt` (numpy, pandas, scipy, scikit-learn, matplotlib, statsmodels, the last only for the cross-checks). **[TODO: pin the exact versions from the project's virtual environment `.venv`.]**
+All paths use `BASE = Path(r'E:\ML') / 'Data'`. Seeds: split 42; models `random_state=0`; bootstrap seeds are set in each script. Dependencies are pinned in `requirements.txt` to the versions installed in the project's virtual environment: numpy 2.5.3, pandas 3.0.6, scipy 1.18.1, scikit-learn 1.9.1, matplotlib 3.11.2 and statsmodels 0.15.0 (statsmodels is used only for the cross-checks).
 
 Saved outputs (aggregates and model weights, no patient-level rows should be committed): `W_nt.npy`, `W_gd.npy`, `W_ridge_1e-4.npy`, `W_ridge_best.npy`, `loss_history_newton.csv`, `loss_history_gd.csv`, `coefficients.csv`, `ridge_sweep.csv`, `metrics_val.csv`, `metrics_val_all.csv`, `confusion_val_newton.csv`, `threshold_table_val.csv`, `cost_summary_val.csv`, `ablations_val.csv`, `coef_se.csv`, `coef_se_cluster.csv`, `error_groups_val.csv`, `leakage_demo.csv`, `leakage_demo_raw.csv`, `frozen_config.json`, `test_metrics.csv`, `test_cost.csv`, `fairness_test.csv`, `figures/`. In the repository these are in `results/`; the website data is `docs/results.json`. `val_probs.csv` and `test_probs.csv` contain one predicted probability per patient encounter and should stay out of the repository like the other row-level files.
 
