@@ -11,7 +11,7 @@ Newton's method, calibration, cost-sensitive thresholds and fairness analysis on
 | Course criterion | Where the evidence is |
 |---|---|
 | Problem formulation and scope | Section 0; website "Question" |
-| Data understanding | Sections 1, 2, 5; website "Data" |
+| Data understanding | Section 1 (source, licence, inclusion criteria, key variables, exploratory plots), 2, 5; website "Data" |
 | Preprocessing and statistical reasoning | Sections 3, 4, 5, 14, 15 |
 | Baseline and method selection | Sections 6, 7, 8, 9, 10 |
 | Evaluation design and metrics | Sections 8, 9, 11 (split fixed first; validation for every choice; test scored once for frozen models) |
@@ -43,6 +43,40 @@ Newton's method, calibration, cost-sensitive thresholds and fairness analysis on
 - Repository history note: early commits, made before the current version, contained `Final_Data.csv` (the cleaned encounter-level dataset, including the dataset's own patient and encounter identifiers), `X_test.csv`, `fair_train.csv`, `fair_val.csv`, `IDS_mapping.csv`, `schema_reference.csv` and the course PDF. They were deleted from the current files but remain visible in the commit history. The data are the public, de-identified UCI/OpenML dataset, which the licence allows to be shared with credit; no result depends on them being in the history.
 <!-- /history-note -->
 
+- Access and scope of the source data (per the OpenML description): a de-identified abstract of the Cerner Health Facts database, publicly downloadable, containing race, gender and age. It includes only inpatient encounters with a diabetes diagnosis, a length of stay of 1 to 14 days, laboratory tests performed and medications administered, so results do not extend to other patients.
+
+### Key variables
+
+| Group | Variables (after encoding) | Role |
+|---|---|---|
+| Target | `readmit_30d` (from `readmitted`: `<30` is 1, `>30` and `NO` are 0) | what is predicted |
+| Prior-year utilisation | `number_outpatient`, `number_emergency`, `number_inpatient` | strongest predictors (section 14) |
+| This stay | `time_in_hospital`, `num_lab_procedures`, `num_procedures`, `num_medications`, `number_diagnoses` | counts known at discharge |
+| Diagnoses | `diag_1/2/3_category_*` (ICD-9 groups) | primary and secondary diagnoses |
+| Medications | `num_med_changes`, `num_med_prescribed`, `change`, `diabetesMed`, 7 drug columns (`*_Down`, `*_Steady`, `*_Up`) | treatment intensity |
+| Tests | `max_glu_serum`, `A1Cresult`, `glu_tested`, `a1c_tested` | the source study's focus is the A1C test |
+| Admission and discharge | `admission_source_group_*`, `admission_type_group_*`, `discharge_group_*` | how the patient arrived and left |
+| Patient | `age_numeric` (bin midpoint), `gender`, payer and specialty groups | race is excluded from the features and used only in the fairness audit |
+
+### Exploratory plots
+
+These descriptive plots use the 69,396 training encounters only, except the class-balance figure, which compares the positive rate of the three splits (no modelling is involved). The numbers behind every figure are in `results/data_summary.csv`; intervals are 95% Wilson intervals; the dashed line is the overall training readmission rate.
+
+![Class balance](results/figures/class_balance.png)
+*Class balance: counts in the training split (7,875 of 69,396 encounters, 11.35%, are readmissions), and the readmission rate in each split with 95% intervals. The three splits have similar rates (11.35% train, 11.63% validation, 11.40% test) and their intervals overlap.*
+
+![Missing data](results/figures/missingness.png)
+*Share of encounters missing in the raw data for each affected column, and how each was handled (section 2).*
+
+![Readmission rate by prior inpatient visits](results/figures/rate_prior_inpatient.png)
+*Left: readmission rate by number of inpatient visits in the preceding year. It rises steadily, from 8.6% with no prior visit (46,402 encounters, 67% of training) to 13.4%, 17.7%, 22.2% and 32.9% for 1, 2, 3 to 4 and 5 to 7 visits, and 48.0% for 8 or more (244 encounters). Right: the distribution of that count on a log scale, which is heavy-tailed (the reason `log1p` was tried in section 10).*
+
+![Readmission rate by age group](results/figures/rate_age.png)
+*Readmission rate by 10-year age group. The pattern is weak and not monotonic: rates are 10% to 11% for ages 30 to 50, dip to 9.6% at 50 to 60, then rise gradually to 12.9% at 90 to 100. The youngest groups are small (95 encounters under 10, with one readmission), so their intervals are wide.*
+
+![Readmission rate by discharge destination](results/figures/rate_discharge.png)
+*Readmission rate by discharge destination (Home is the reference group in the model). Home is lowest (9.3%, 42,086 encounters); rehab is highest (26.9%, 1,377 encounters, about 2.9 times the Home rate), followed by other institutions (18.8%), AMA (15.4%), SNF/LTC (14.2%), home health (12.7%) and unknown (11.5%). The direction agrees with the model's coefficients in section 14.*
+
 ## 2. Cleaning (`Data_Loading_Processing.py`)
 
 The ARFF file is split into data and meta, strings are decoded as UTF-8, the schema is saved from the meta, and `?` is replaced with NA. Missing counts were checked before and after cleaning. After cleaning, every nominal column was compared against the allowed values in the ARFF meta. The only differences are the values added deliberately during cleaning (`Unknown`, `Missing`, `None`).
@@ -57,7 +91,7 @@ The ARFF file is split into data and meta, strings are decoded as UTF-8, the sch
 | diag_2 | 0.35% | Assigned `None`, later `Missing` | A missing second diagnosis is informative |
 | diag_3 | 1.40% | Assigned `None`, later `Missing` | A missing third diagnosis is informative |
 
-Note that `None` in the raw data is read by pandas as NaN, so it is handled explicitly with `fillna('None')`.
+Note that `None` in the raw data is read by pandas as NaN, so it is handled explicitly with `fillna('None')`. No statistical imputation is used: missing values become explicit categories (`Missing`, `Unknown`), so there is no imputation to fit on training data.
 
 ## 3. Feature engineering (`Cleaned_Data_Encoding.py`)
 
@@ -143,6 +177,16 @@ Building blocks, written from scratch (the verified definitions are also collect
 
 All fit functions return the weights and three histories (train loss, validation loss, gradient norm) indexed by number of updates: index 0 is the starting point (loss ln 2 = 0.693147) and index k is the state after k updates.
 
+### Why these methods, and what was assumed
+
+| Method | Why it is in the project | Assumptions and how they were checked |
+|---|---|---|
+| Constant base-rate predictor | the baseline: what can be achieved without using the features | none; AUC is 0.5 by construction |
+| Logistic regression, Newton's method | gives the calibrated probabilities that the cost rule `1/(1+r)` needs, and interpretable coefficients; Newton uses curvature and converges in 6 updates | linear effects on the log-odds of the standardized features (checked indirectly: calibration across risk deciles and prior-visit counts, and the `log1p` ablation); independent rows (cluster-robust standard errors changed little, section 14); no perfect separation (finite coefficients, no one-class binary column); no severe collinearity (condition number 154, largest correlation 0.78) |
+| Gradient descent | shows what Newton gains: the same objective, slow on this ill-conditioned problem | same objective; not converged after 50,000 updates |
+| Ridge | tests whether shrinkage helps weakly determined coefficients | penalizes every weight except the intercept; strength chosen on validation, where it did not help |
+| Random forest, gradient boosting | flexible comparators that need no linearity or additivity; tests whether a richer model finds more signal | fixed settings, not tuned; both land near 0.68 AUC, so the limit is the information in the features |
+
 ### Verification
 
 | Check | Result |
@@ -194,10 +238,22 @@ For scale, a constant prediction of the training base rate (11.35%) has a valida
 
 - The split (section 4) was fixed before any model comparison. **Train** is used for fitting only. **Validation** is used for model selection, the Ridge sweep, threshold exploration, ablations and error analysis. **Test** is used once, at the end, for the frozen models only (section 11).
 - **Metrics.** Validation log loss is the primary criterion, because it is what the model optimizes and it is a proper scoring rule. Brier score, AUC and calibration are descriptive. Accuracy is not used: always predicting "no readmission" has 88.4% validation accuracy, and Newton at threshold 0.5 reaches 88.5% while catching 2.6% of readmissions.
-- **Uncertainty.** Percentile intervals (95%) from a paired bootstrap that resamples encounters (500 to 1,000 resamples; the same resamples are used for every model in a comparison).
+- **Uncertainty.** Percentile intervals (95%) from a paired bootstrap that resamples encounters (500 to 1,000 resamples; the same resamples are used for every model in a comparison). They describe sampling variation of the evaluated encounters; they do not cover model misspecification or a change of population.
 - **Selection rule (declared while working on validation, before the test set).** Within the logistic family, validation log loss picks the unpenalized Newton fit (lambda = 0). Lambda = 1e-4 is kept as a secondary "stabilized" model, justified by coefficient stability and not by loss. Across all candidates, validation log loss favors gradient boosting (section 9). Both Newton (the from-scratch, interpretable and well-calibrated model) and gradient boosting (the model preferred by the log loss criterion) were carried to the test set. That decision was made after the validation comparison and before the test data were loaded.
 - Tree baselines use settings fixed in advance and were not tuned: random forest `n_estimators=300, min_samples_leaf=50, random_state=0`; `HistGradientBoostingClassifier(max_iter=200, learning_rate=0.05, max_leaf_nodes=15, early_stopping=False, random_state=0)`.
 - sklearn logistic regression matches the from-scratch Newton fit to about 1e-12 (section 6), so it is a verification and not a separate baseline.
+
+| Metric | What it answers | What it cannot answer |
+|---|---|---|
+| Log loss (primary) | how good the predicted probabilities are; a proper scoring rule and the quantity the model optimizes | not easy to read in practical units |
+| Brier score | squared error of the probabilities, compared with the base-rate predictor | same |
+| AUC | how well patients are ranked by risk | says nothing about calibration or where to put a threshold |
+| Calibration curve and slope | whether predicted risks can be taken at face value, which the rule `1/(1+r)` needs | needs enough patients per bin |
+| Sensitivity, precision, flagged share | the workload and yield of an intervention at a threshold | depend on the threshold, so reported over a range |
+| Cost and saving at `1/(1+r)` | decision value for a stated cost ratio, against flag-nobody and flag-everybody | depends on the assumed `r` |
+| Accuracy (not used) | | always predicting "no readmission" is already 88% accurate |
+
+Precision-recall performance is reported as precision at thresholds (sections 9 and 11), not as an area under the precision-recall curve.
 
 ## 9. Validation results
 
@@ -251,7 +307,7 @@ A flagged patient receives an intervention. A missed readmission costs `r` times
 
 The theory threshold costs within about 0.002 of the best threshold found by searching a grid on validation for `r` up to 5 (0.009 at `r` = 10) for Newton, so the rule works without tuning. The cost curve is flat near the optimum, so small differences between the two are noise. At `r` = 1 and `r` = 20 the model has no useful operating point: it flags almost nobody or almost everybody. The headline range is **`r` in {2, 3, 5, 10}**, with **`r` = 5 as the worked example (an assumption)**.
 
-Bootstrap intervals for the saving over the best trivial policy (validation):
+Bootstrap intervals for the saving over the best trivial policy (validation; the centre values are bootstrap means and differ slightly from the point estimates in the table above):
 
 | r | Newton saving | GB saving | GB cheaper than Newton by |
 |---|---|---|---|
@@ -323,7 +379,8 @@ The test set contains about 114 readmissions per 1,000 patients. Saving is the r
 - **Worked example, r = 5, Newton:** per 1,000 patients the model flags 131, catches 33 of the 114 readmissions, misses 81 and raises 98 unnecessary flags. About 25% of flagged patients are real readmissions (11.4% overall), and the model catches 2.2 times as many readmissions as flagging the same number of patients at random.
 - At `r` = 10 the model catches about three quarters of readmissions but must flag more than half of all patients, with precision around 16%.
 - Gradient boosting minus Newton in cost: cheaper by 0.0031 [0.0008, 0.0056] at `r` = 2 and 0.0049 [0.0005, 0.0091] at `r` = 3. At `r` = 5 (0.0073 [-0.0009, 0.0150]) and `r` = 10 (0.0025 [-0.0147, 0.0202]) the intervals include zero. Boosting slightly favored at low cost ratios, not distinguishable at high ones.
-- Validation and test agree: Newton's `r` = 5 saving was 0.0777 on validation and 0.0669 on test.
+- The website's slider intervals were recomputed with 300 bootstrap resamples and another seed, so they can differ from the intervals in this README in the third decimal.
+- Validation and test agree: Newton's `r` = 5 saving was 0.0772 on validation and 0.0669 on test (point estimates).
 
 ## 12. Fairness audit (test set, frozen predictions)
 
@@ -359,6 +416,17 @@ At threshold 1/6 on validation the model gives 355 true positives, 818 false neg
 - **Risk deciles.** The top decile has an observed readmission rate of 28.6% (2.5 times the base rate) and holds 24.6% of all readmissions; the top three deciles hold 51.7%. Readmissions are thinly spread: the bottom half of the scores still contains about 30% of them.
 - **Errors resemble their neighbours.** Missed readmissions look like patients who were correctly left alone: 61% have no prior inpatient visit (74% of true negatives), with mean predicted risk 0.105 against 0.093. False alarms look like caught readmissions: 2.4 prior inpatient visits (3.0 for true positives), and rehab discharge in 14% (16%). Heavy prior utilization and rehab discharge drive the flags, and among flagged patients the features barely separate who actually returns (precision 26%).
 - **The main limitation.** Patients with no prior inpatient visit are 66% of validation patients and 48% of readmissions, and the model catches 11% of them. Within that group, patients with a home discharge (4,231 patients) have 283 readmissions, 24% of all readmissions, a readmission rate of 6.7% and sensitivity 0.0. 6.7% is below the 16.7% break-even implied by `r` = 5 (flagging a whole group pays only when its rate exceeds `1/(1+r)`, which here would need `r` above about 14), so not flagging them is what the cost rule prescribes. The remaining features carry little signal for these patients.
+
+Profile of the four outcome groups at `r` = 5 (validation):
+
+| Group | n | Mean predicted risk | Mean age | Prior inpatient visits | Prior emergency visits | No prior inpatient visit | Home discharge | Rehab discharge |
+|---|---|---|---|---|---|---|---|---|
+| Caught (true positive) | 355 | 0.277 | 64.6 | 3.00 | 1.07 | 17.7% | 31.3% | 16.3% |
+| Missed (false negative) | 818 | 0.105 | 66.6 | 0.58 | 0.22 | 60.6% | 59.9% | 0.1% |
+| False alarm (false positive) | 996 | 0.239 | 68.6 | 2.41 | 0.64 | 20.3% | 26.8% | 14.3% |
+| Correct, not flagged (true negative) | 7,920 | 0.093 | 65.1 | 0.34 | 0.12 | 74.0% | 67.1% | 0.1% |
+
+Calibration by prior inpatient visits (validation):
 
 | Prior inpatient visits | n | Mean predicted | Observed |
 |---|---|---|---|
@@ -438,22 +506,23 @@ Three rules in `Cleaned_Data_Encoding.py` used counts from all rows before the s
 5. **Fairness.** Race is not a model feature, but proxies for race remain in `X` (payer code, admission source, specialty and others). The audit is descriptive, covers about 14 groups at one threshold, has low power for small groups, and found a clear performance gap by age (lower sensitivity and higher false-positive rates for older patients). Caucasian is the largest group but AfricanAmerican is the reference category in the fairness files.
 6. **Rare drug columns** (for example `rosiglitazone_Down`, 60 rows and 4 positives) have noisy coefficients and should not be interpreted one by one. Ridge shrinks them, but does not improve validation loss.
 7. **Heavy-tailed visit counts** (up to about 50 standard deviations). `log1p` gave the best ablation point estimates, but the effect was not statistically clear and it was not adopted.
-8. **Age** is encoded as bin midpoints, which assumes a linear effect on the log-odds.
+8. **Age** is encoded as bin midpoints, which assumes a linear effect on the log-odds. The exploratory plot (section 1) shows that the observed readmission rate by age is weak and not monotonic (a dip at 50 to 60, then a gradual rise), so a linear term is a crude description. Its coefficient is small (odds ratio 1.047 per standard deviation, section 14).
 9. **Preprocessing choices** (top-12 specialties, rare-payer threshold, drug variance threshold) were computed on the full data without labels, and the 98.46% threshold was chosen while viewing readmission rates. A train-only recomputation (section 15) found the same drug and specialty decisions, and one payer code (`OG`, 1.017% of all rows against 0.980% of training rows) on the other side of the 1% line; the pipeline was not re-run with it.
-10. **Scope.** Patients who died or went to hospice are excluded, the data covers 1999 to 2008 at US hospitals, and results describe prediction and not causes.
+10. **Scope.** The source data are inpatient diabetic encounters of 1 to 14 days with laboratory tests and medications; patients who died or went to hospice are excluded, the data covers 1999 to 2008 at US hospitals, and results describe prediction and not causes.
 11. **Model form.** Logistic regression assumes linear effects on the log-odds and no interactions. Random forest and gradient boosting are included for that reason, and perform only slightly better. The tree models used fixed, untuned settings.
 12. **Standard errors** assume the model is correctly specified. A coefficient's size measures association only.
 13. **The test set was used once**, for the two frozen models. Anything added after that, such as recalibrating gradient boosting or group-specific thresholds, would be a post-hoc analysis.
 
 ## 17. Remaining work
 
-1. Optional plots for data understanding (class balance, readmission rate by prior inpatient visits and by age) in `results/figures/` and on the website.
-2. Optional ablations not run: ICD-9 mental health and blood disorder categories, admission group variants, and a re-run with `OG` merged into `OtherPayer`.
-3. Viva preparation: each student should be able to explain their contribution, key choices, the evaluation design, a limitation, and the effect of a small change (for example a different `r`, or `log1p` on visit counts).
+1. Optional ablations not run: ICD-9 mental health and blood disorder categories, admission group variants, and a re-run with `OG` merged into `OtherPayer`.
+2. Optional: area under the precision-recall curve in addition to precision at thresholds.
 
-Done: the static website is published on GitHub Pages (https://abhimanyu-arya.github.io/30-Day-Hospital-Readmission-Prediction/), with a cost-ratio slider, a free threshold slider and a calibration plot reading `docs/results.json`, which aggregates only (no patient-level rows).
+Done: the exploratory data plots (section 1) and the static website are published on GitHub Pages (https://abhimanyu-arya.github.io/30-Day-Hospital-Readmission-Prediction/), with a cost-ratio slider, a free threshold slider and a calibration plot reading `docs/results.json`, which aggregates only (no patient-level rows).
 
 ## 18. Files and reproducibility
+
+**Data access.** Download the dataset from OpenML (https://www.openml.org/d/4541, ARFF) or UCI (https://archive.ics.uci.edu/dataset/296) and save the ARFF file as `Data/Raw_OPENML4541.arff`. Create the `Data/` folder next to the scripts, set `BASE` at the top of each script to your own path (the scripts use `E:\ML\Data`), and install the pinned packages with `pip install -r requirements.txt`. No other download is needed.
 
 Run in this order: `Data_Loading_Processing.py`, `Cleaned_Data_Encoding.py`, `DataSplit.py` (`Data_Loading_Processing.py` writes `cleaned_data.csv`, `Cleaned_Data_Encoding.py` writes `Final_Data.csv`, and `DataSplit.py` reads it), `ModelClass.py` (set `RUN_GD = True` once for the gradient descent run), then the analysis scripts, which read the saved outputs and `model.py`:
 
@@ -471,11 +540,16 @@ Run in this order: `Data_Loading_Processing.py`, `Cleaned_Data_Encoding.py`, `Da
 | `test_set.py` | Single test evaluation, writes `frozen_config.json` and `test_probs.csv`; refuses to run twice | yes, once |
 | `fairness_test.py` | Fairness audit from `test_probs.csv` and `fair_test.csv` | yes (frozen predictions) |
 | `train_only_rules_check.py` | Recomputes the drug, specialty and payer rules on training patients only | no (reads patient split labels only) |
+| `data_plots.py` | Exploratory plots and `data_summary.csv` (training encounters; class balance also shows each split's positive rate) | positive rate of the test split only |
 | `export_results.py` | Builds `results.json` for the website (aggregates only) | uses saved test predictions |
 
 All paths use `BASE = Path(r'E:\ML') / 'Data'`. Seeds: split 42; models `random_state=0`; bootstrap seeds are set in each script. Dependencies are pinned in `requirements.txt` to the versions installed in the project's virtual environment: numpy 2.5.3, pandas 3.0.6, scipy 1.18.1, scikit-learn 1.9.1, matplotlib 3.11.2 and statsmodels 0.15.0 (statsmodels is used only for the cross-checks).
 
-Saved outputs (aggregates and model weights, no patient-level rows should be committed): `W_nt.npy`, `W_gd.npy`, `W_ridge_1e-4.npy`, `W_ridge_best.npy`, `loss_history_newton.csv`, `loss_history_gd.csv`, `coefficients.csv`, `ridge_sweep.csv`, `metrics_val.csv`, `metrics_val_all.csv`, `confusion_val_newton.csv`, `threshold_table_val.csv`, `cost_summary_val.csv`, `ablations_val.csv`, `coef_se.csv`, `coef_se_cluster.csv`, `error_groups_val.csv`, `leakage_demo.csv`, `leakage_demo_raw.csv`, `frozen_config.json`, `test_metrics.csv`, `test_cost.csv`, `fairness_test.csv`, `figures/`. In the repository these are in `results/`; the website data is `docs/results.json`. `val_probs.csv` and `test_probs.csv` contain one predicted probability per patient encounter and should stay out of the repository like the other row-level files.
+Saved outputs (aggregates and model weights, no patient-level rows should be committed): `W_nt.npy`, `W_gd.npy`, `W_ridge_1e-4.npy`, `W_ridge_best.npy`, `loss_history_newton.csv`, `loss_history_gd.csv`, `coefficients.csv`, `ridge_sweep.csv`, `metrics_val.csv`, `metrics_val_all.csv`, `confusion_val_newton.csv`, `threshold_table_val.csv`, `cost_summary_val.csv`, `ablations_val.csv`, `coef_se.csv`, `coef_se_cluster.csv`, `error_groups_val.csv`, `leakage_demo.csv`, `leakage_demo_raw.csv`, `frozen_config.json`, `test_metrics.csv`, `test_cost.csv`, `fairness_test.csv`, `figures/`. In the repository these are in `results/`; the website data is `docs/results.json`. The exploratory plots are in `results/figures/` with `results/data_summary.csv`.
+
+**Quick check that a rerun matches.** `ModelClass.py` should print the shapes (69396, 100), (10089, 100) and (19835, 100), Newton converging in 6 updates to train loss 0.336450 and validation loss 0.339326, and a best Ridge lambda of 0. `metrics_val.py` should give Newton validation AUC 0.669633 and Brier 0.097906 (baseline Brier 0.102755). `test_set.py` asserts the two validation log losses (0.339326 and 0.336527) before it touches the test data.
+
+`val_probs.csv` and `test_probs.csv` contain one predicted probability per patient encounter and should stay out of the repository like the other row-level files.
 
 ## 19. AI use disclosure
 

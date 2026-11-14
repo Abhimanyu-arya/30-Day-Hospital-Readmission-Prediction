@@ -6,6 +6,23 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Predicting 30-day diabetic readmission with logistic regression from scratch</title>
   <style>
+    figure {
+      margin: 14px 0
+    }
+
+    figure img {
+      background: #fff;
+      border-radius: 8px;
+      width: 100%;
+      max-width: 680px;
+      height: auto
+    }
+
+    figcaption {
+      font-size: .85rem;
+      color: var(--mut)
+    }
+
     :root {
       --bg: #fff;
       --fg: #1c2330;
@@ -233,6 +250,25 @@
     <p>Main quality issues: <code>weight</code> was 97% missing and was dropped; specialty (49%) and payer (40%) were
       kept with a <code>Missing</code> category; patients who died or went to hospice were removed because they cannot
       be readmitted.</p>
+    <figure><img src="figures/class_balance.png"
+        alt="Class balance: counts in the training split and readmission rate in each split">
+      <figcaption>Class balance: about 1 in 9 encounters is a 30-day readmission, in every split.</figcaption>
+    </figure>
+    <figure><img src="figures/missingness.png" alt="Share of encounters missing per column and how each was handled">
+      <figcaption>Missing data in the raw file and how each column was handled.</figcaption>
+    </figure>
+    <figure><img src="figures/rate_prior_inpatient.png"
+        alt="Readmission rate by prior inpatient visits and the distribution of that count">
+      <figcaption>Readmission rate by prior-year inpatient visits (left) and the heavy-tailed distribution of that count
+        (right, log scale).</figcaption>
+    </figure>
+    <figure><img src="figures/rate_age.png" alt="Readmission rate by age group">
+      <figcaption>Readmission rate by age group, with 95% intervals.</figcaption>
+    </figure>
+    <figure><img src="figures/rate_discharge.png" alt="Readmission rate by discharge destination">
+      <figcaption>Readmission rate by discharge destination, with 95% intervals.</figcaption>
+    </figure>
+
 
     <h2 id="prep">Preprocessing</h2>
     <p>The 99 features include length of stay, procedure, lab and medication counts, prior-year outpatient, emergency
